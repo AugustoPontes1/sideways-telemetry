@@ -85,7 +85,7 @@ def main() -> None:
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--hz", type=int, default=50, choices=range(1, 101), metavar="1..100")
     args = parser.parse_args()
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s% (levelname)s %(message)s")
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     try:
         run(args.host, args.port, args.hz)
     except KeyboardInterrupt:

@@ -148,3 +148,10 @@ LOGGING = {
     "handlers": {"console": {"class": "logging.StreamHandler", "formatter": "short"}},
     "root": {"handlers": ["console"], "level": os.getenv("LOG_LEVEL", "INFO")},
 }
+
+
+# Trusted frontend origin for local Vite development
+CSRF_TRUSTED_ORIGINS = [
+    *CSRF_TRUSTED_ORIGINS,
+    "http://127.0.0.1:5173",
+]

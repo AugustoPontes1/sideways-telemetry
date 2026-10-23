@@ -9,9 +9,9 @@ import os
 from pathlib import Path
 
 from buffer import BufferFullError, PersistentBuffer
-from normalizer import InvalidTelemetry, TelemetryNormalizer
+from normalizer import InvalidTelemetry
 from transport import TrasnportConfig, WebSocketTransport
-from receiver import TelemetryNormalizer, start_receiver
+from receiver import start_receiver, TelemetryReceiver
 
 LOG = logging.getLogger("telemetry-agent")
 
@@ -53,14 +53,14 @@ async def serve(args: argparse.Namespace) -> None:
     spool = PersistentBuffer(Path(args.db), max_events=args.max_events)
     data_event = asyncio.Event()
     space_event = asyncio.Event()
-    receiver = TelemetryNormalizer(spool, on_data=data_event, on_space=space_event)
+    receiver = TelemetryReceiver(spool, on_data=data_event, on_space=space_event)
     foward_task = None
     try:
         if not args.capture_only:
             cfg = TrasnportConfig(
                 url=args.upstream_url,
                 agent_id=args.agent_id,
-                token=os.getenv(),
+                token=os.getenv("TELEMETRY_TOKEN"),
                 ca_file=args.ca_file,
                 batch_size=args.batch_size,
                 flush_interval_s=args.flush_interval,

@@ -128,7 +128,7 @@ class NamedPage:
         self._api.OpenFileMappingW.restype = wintypes.HANDLE
         self._api.MapViewOfFile.argtypes = [wintypes.HANDLE, wintypes.DWORD,
                                             wintypes.DWORD, wintypes.DWORD, ctypes.c_size_t]
-        self._api.MapVieOfFile.restype = ctypes.c_void_p
+        self._api.MapViewOfFile.restype = ctypes.c_void_p
         self._api.UnmapViewOfFile.argtypes = [ctypes.c_void_p]
         self._api.CloseHandle.argtypes = [wintypes.HANDLE]
         self._api.CloseHandle.restype = wintypes.BOOL
@@ -192,7 +192,7 @@ class ACSharedMemory:
         for _ in range(3):
             p = self._pages["physics"].read()
             g = self._pages["graphics"].read()
-            if p.packedId == self._pages["physics"].read().packedId:
+            if p.packetId == self._pages["physics"].read().packetId:
                 return p, g
         return None
     
