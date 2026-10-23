@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "drift-telemetry-schema"
+version = "0.1.0"
+description = "Typed and validated AC Bridge -> WSL -> Homelab v1 telemetry contracts"
+requires-python = ">=3.12"
+dependencies = []
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+telemetry_schema = ["schemas/*.json"]

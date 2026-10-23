@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "drift-math"
+version = "0.1.0"
+description = "Numerical linear algebra and planar vehicle telemetry geometry with explicit assumptions"
+requires-python = ">=3.12"
+dependencies = ["numpy>=1.26,<3"]
+
+[tool.setuptools.packages.find]
+where = ["src"]

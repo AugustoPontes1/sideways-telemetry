@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "drift-analysis"
+version = "0.1.0"
+description = "Conservative drift driving telemetry analyses and recorded reference comparisons"
+requires-python = ">=3.12"
+dependencies = ["numpy>=1.26,<3", "drift-math==0.1.0"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
