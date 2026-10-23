@@ -1,79 +1,81 @@
-"""
-Validation and normalization samples NDJSON produced by AC Bridge
+"""Validação e normalização das amostras NDJSON produzidas pelo AC Bridge.
 
-It doesnt calculate advanced physics: Drift angle and local axle depends
-on validation of conventions and coordinates from the real game
+Não calcula física avançada: ângulo de drift e eixos locais dependem de
+validação de convenções de coordenadas com o jogo real.
 """
 from __future__ import annotations
 
 import math
 import time
 import uuid
-from  collections.abc import Mapping
+from collections.abc import Mapping
 
 
 class InvalidTelemetry(ValueError):
-    """Invalid message contract for Windows bridge"""
+    """Mensagem incompatível com o contrato da ponte Windows."""
 
 
 def _integer(data: Mapping, key: str, *, minimum: int = 0, maximum: int = 2**63 - 1) -> int:
     value = data.get(key)
     if type(value) is not int or not minimum <= value <= maximum:
-        raise InvalidTelemetry(f"{key}: needs to be int between {minimum} and {maximum}")
-    
+        raise InvalidTelemetry(f"{key}: esperado inteiro entre {minimum} e {maximum}")
+    return value
+
 
 def _number(data: Mapping, key: str, *, minimum: float = -1e12,
             maximum: float = 1e12) -> float:
     value = data.get(key)
     if type(value) not in (float, int) or not math.isfinite(value):
-        raise InvalidTelemetry(f"{key}: waiting finite number")
+        raise InvalidTelemetry(f"{key}: esperado número finito")
     if not minimum <= value <= maximum:
-        raise InvalidTelemetry(f"{key}: outside of allowed interval")
+        raise InvalidTelemetry(f"{key}: fora do intervalo permitido")
     return float(value)
+
 
 def _vector(data: Mapping, key: str, size: int) -> list[float]:
     value = data.get(key)
     if not isinstance(value, (tuple, list)) or len(value) != size:
-        raise InvalidTelemetry(f"{key}: waiting vector of {size} components")
+        raise InvalidTelemetry(f"{key}: esperado vetor de {size} componentes")
     result: list[float] = []
     for coordinate in value:
         if type(coordinate) not in (float, int) or not math.isfinite(coordinate):
-            raise InvalidTelemetry(f"{key}: not a coordination number or not finite")
+            raise InvalidTelemetry(f"{key}: coordenada não numérica ou não finita")
         if abs(coordinate) > 1e9:
-            raise InvalidTelemetry(f"{key}: coordinate outside of the interval")
+            raise InvalidTelemetry(f"{key}: coordenada fora do intervalo")
         result.append(float(coordinate))
     return result
+
 
 def _text(data: Mapping, key: str, max_length: int = 160) -> str:
     value = data.get(key)
     if not isinstance(value, str) or len(value) > max_length:
-        raise InvalidTelemetry(f"{key}: invalid text")
+        raise InvalidTelemetry(f"{key}: texto inválido")
     return value
 
 
 class TelemetryNormalizer:
-    """Guarantee v1 schema, units and identifications of dedups."""
-    
+    """Garante schema v1, unidades explícitas e identificadores de deduplicação."""
+
     def normalize(self, message: Mapping, received_at_unix_ns: int | None = None) -> dict:
         if not isinstance(message, Mapping) or message.get("type") != "telemetry":
-            raise InvalidTelemetry("type needs to be 'telemetry'")
-        
+            raise InvalidTelemetry("type deve ser 'telemetry'")
+
         stream_raw = message.get("stream_id")
         if not isinstance(stream_raw, str) or len(stream_raw) > 64:
-            raise InvalidTelemetry("stream_id not present or invalid")
+            raise InvalidTelemetry("stream_id ausente ou inválido")
         try:
             stream_id = str(uuid.UUID(stream_raw))
         except (ValueError, AttributeError) as exc:
-            raise InvalidTelemetry("stream_id needs to be UUID") from exc
+            raise InvalidTelemetry("stream_id deve ser UUID") from exc
         sequence = _integer(message, "sequence")
-        
+
         frame = message.get("telemetry")
-        
         if not isinstance(frame, Mapping):
-            raise InvalidTelemetry("telemetry needs to be a object")
+            raise InvalidTelemetry("telemetry deve ser um objeto")
         if _integer(frame, "schema_version") != 1:
-            raise InvalidTelemetry("schema_version different from 1")
-        
+            raise InvalidTelemetry("schema_version diferente de 1")
+
+        # Campos exatamente correspondentes a TelemetryFrame do ac-bridge v1.
         normalized = {
             "schema_version": 1,
             "timestamp_unix_ns": _integer(frame, "timestamp_unix_ns", minimum=1),
@@ -98,20 +100,20 @@ class TelemetryNormalizer:
             "velocity_world_mps": _vector(frame, "velocity_world_mps", 3),
             "acceleration_g": _vector(frame, "acceleration_g", 3),
             "angular_velocity_local_rad_s": _vector(frame, "angular_velocity_local_rad_s", 3),
-            "wheel_slip_raw": _vector(frame, "wheel_slip_raw", 4),            
+            "wheel_slip_raw": _vector(frame, "wheel_slip_raw", 4),
         }
         for name in ("throttle", "brake", "clutch"):
-            normalized[name] = min(self.normalized[name], 1.0)
-        
-        # Unequivocal unit conversion, without interpret yaw/heading
+            normalized[name] = min(normalized[name], 1.0)
+
+        # Conversão de unidade inequívoca, sem interpretar ainda yaw/heading.
         normalized["speed_mps"] = normalized["speed_kmh"] / 3.6
         received_ns = time.time_ns() if received_at_unix_ns is None else received_at_unix_ns
         if type(received_ns) is not int or received_ns <= 0:
-            raise InvalidTelemetry("received_at_unix_ns is invalid")
+            raise InvalidTelemetry("received_at_unix_ns inválido")
         return {
             "type": "telemetry",
             "stream_id": stream_id,
             "sequence": sequence,
             "received_at_unix_ns": received_ns,
-            "telemetry": normalized
+            "telemetry": normalized,
         }

@@ -22,7 +22,7 @@ if not SECRET_KEY:
         raise ImproperlyConfigured("DJANGO_SECRET_KEY é obrigatório em produção")
 
 ALLOWED_HOSTS = [h.strip() for h in os.getenv(
-    "DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,[::1]"
+    "DJANGO_ALLOWED_HOSTS", "localhost,192.168.0.8,127.0.0.1,[::1]"
 ).split(",") if h.strip()]
 CSRF_TRUSTED_ORIGINS = [url.strip() for url in os.getenv(
     "DJANGO_CSRF_TRUSTED_ORIGINS", ""
@@ -154,4 +154,7 @@ LOGGING = {
 CSRF_TRUSTED_ORIGINS = [
     *CSRF_TRUSTED_ORIGINS,
     "http://127.0.0.1:5173",
+    "http://localhost:5173",
+    "http://192.168.0.8:5173",
+    
 ]
