@@ -1,0 +1,114 @@
+export type Vec3 = [number, number, number];
+
+export interface DrivingSession {
+  stream_id: string;
+  agent_id: string;
+  car: string;
+  track: string;
+  session_type: number;
+  sample_count: number;
+  max_sequence: number;
+  first_sample_at: string;
+  last_sample_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/** DTO unificado: REST traz sampled_at; WS publica timestamp_unix_ns. */
+export interface TelemetrySample {
+  sequence: number;
+  sampled_at: string;
+  received_at?: string;
+  speed_kmh: number;
+  speed_mps: number;
+  rpm: number;
+  gear: number;
+  throttle: number;
+  brake: number;
+  clutch: number;
+  steer_angle_rad: number;
+  heading_rad: number;
+  pitch_rad?: number;
+  roll_rad?: number;
+  position_world_m: Vec3;
+  velocity_world_mps: Vec3;
+  completed_laps?: number;
+}
+
+export interface SamplesPage {
+  stream_id: string;
+  samples: TelemetrySample[];
+  has_more: boolean;
+  next_after: number | null;
+}
+
+export interface LiveMessage {
+  type: 'telemetry.samples';
+  stream_id: string;
+  samples: Array<Partial<TelemetrySample> & {
+    sequence: number;
+    timestamp_unix_ns: number;
+  }>;
+}
+
+export type LiveStatus = 'demo' | 'connecting' | 'connected' | 'reconnecting' | 'offline';
+
+export interface AnalysisStats {
+  count: number;
+  speed_min_kmh: number | null;
+  speed_max_kmh: number | null;
+  speed_avg_kmh: number | null;
+  rpm_min: number | null;
+  rpm_max: number | null;
+  throttle_avg: number | null;
+}
+export interface DriverEvent {
+  kind: string;
+  sequence: number;
+  rate: number;
+  unit: string;
+  label: string;
+}
+export interface SessionAnalysis {
+  stream_id: string;
+  car: string;
+  track: string;
+  stats: AnalysisStats;
+  events: DriverEvent[];
+  event_window_samples: number;
+  interpretation: string;
+}
+export interface TrajectoryComparison {
+  evaluated_points: number;
+  mean_distance_m: number;
+  max_distance_m: number;
+  per_point_distance_m: number[];
+  actual_path_xz_m: [number, number][];
+  reference_path_xz_m: [number, number][];
+  method: string;
+  limitations: string;
+  current_stream_id: string;
+  reference_stream_id: string;
+}
+export interface LearningTopic {
+  id: string;
+  title: string;
+  lessons: number[];
+}
+export type ExerciseValue = null | string | number | boolean | ExerciseValue[] | { [key: string]: ExerciseValue };
+export interface Exercise {
+  topic: string;
+  title: string;
+  lessons: number[];
+  source_sequences: number[];
+  question: string;
+  inputs: Record<string, ExerciseValue>;
+  expected_result: ExerciseValue;
+  note: string;
+  solution?: string[];
+}
+export interface AnswerCheck {
+  correct: boolean;
+  expected_result: ExerciseValue;
+  solution_revealed: boolean;
+}

@@ -1,0 +1,12 @@
+# Trecho para adicionar à seção `services:` de backend/compose.yaml.
+# NÃO é um Compose standalone. Executar do diretório backend/.
+frontend:
+  build:
+    context: ../frontend
+  restart: unless-stopped
+  ports:
+    - "127.0.0.1:8080:80"
+  depends_on:
+    backend:
+      condition: service_healthy
+  networks: [internal]
