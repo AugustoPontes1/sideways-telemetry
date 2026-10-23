@@ -13,7 +13,7 @@ from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.security.websocket import AllowedHostsOriginValidator
 from django.urls import path
 
-from apps.backend.telemetry.consumers import IngestConsumer, SessionLiveConsumer
+from telemetry.consumers import IngestConsumer, SessionLiveConsumer
 
 application = ProtocolTypeRouter({
     "http": django_application,

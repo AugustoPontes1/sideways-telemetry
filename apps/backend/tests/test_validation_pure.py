@@ -3,8 +3,8 @@ import uuid
 
 import pytest
 
-from apps.backend.telemetry.validators import InvalidBatch, validate_batch
-from apps.backend.tests.helpers import make_batch, make_sample
+from telemetry.validators import InvalidBatch, validate_batch
+from tests.helpers import make_batch, make_sample
 
 
 def test_valid_agent_batch_and_speed_normalization():

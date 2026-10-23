@@ -4,7 +4,7 @@ from django.db import models
 
 class TelemetrySample(models.Model):
     session = models.ForeignKey(
-        "sessions.DrivingSession", on_delete=models.CASCADE,
+        "drift_sessions.DrivingSession", on_delete=models.CASCADE,
         related_name="samples",
     )
     sequence = models.PositiveBigIntegerField()

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from django.db.models import Avg, Count, Max, Min
 
-from apps.backend.telemetry.models import TelemetrySample
+from telemetry.models import TelemetrySample
 
 
 def summarize_session(session, event_window: int = 2000) -> dict:

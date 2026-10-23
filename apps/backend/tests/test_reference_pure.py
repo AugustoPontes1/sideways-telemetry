@@ -1,5 +1,5 @@
 import pytest
-from apps.backend.analysis.reference import closest_distance_xz, compare_with_reference
+from analysis.reference import closest_distance_xz, compare_with_reference
 
 
 def test_point_to_polyline():

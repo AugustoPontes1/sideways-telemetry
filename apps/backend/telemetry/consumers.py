@@ -10,9 +10,9 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from django.conf import settings
 from django.db import DatabaseError
 
-from apps.backend.sessions.models import DrivingSession
-from apps.backend.telemetry.ingestion import persist_batch
-from apps.backend.telemetry.validators import InvalidBatch, MAX_BATCH_BYTES, validate_batch
+from sessions.models import DrivingSession
+from telemetry.ingestion import persist_batch
+from telemetry.validators import InvalidBatch, MAX_BATCH_BYTES, validate_batch
 
 LOG = logging.getLogger(__name__)
 

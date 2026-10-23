@@ -8,9 +8,9 @@ from django.contrib.auth import get_user_model
 from django.test import TransactionTestCase, override_settings
 
 from config.asgi import application
-from apps.backend.sessions.models import DrivingSession
-from apps.backend.telemetry.models import TelemetrySample
-from apps.backend.tests.helpers import make_batch, make_sample
+from sessions.models import DrivingSession
+from telemetry.models import TelemetrySample
+from tests.helpers import make_batch, make_sample
 
 TOKEN = "test-only-token-with-at-least-32-characters"
 

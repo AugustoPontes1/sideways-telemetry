@@ -8,9 +8,9 @@ from typing import Any
 from django.db import transaction
 from django.utils import timezone
 
-from apps.backend.sessions.models import DrivingSession
-from apps.backend.telemetry.models import TelemetrySample
-from apps.backend.telemetry.validators import InvalidBatch, ValidatedBatch, ValidatedSample
+from sessions.models import DrivingSession
+from telemetry.models import TelemetrySample
+from telemetry.validators import InvalidBatch, ValidatedBatch, ValidatedSample
 
 
 @dataclass(frozen=True)

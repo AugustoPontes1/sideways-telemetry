@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from apps.backend.telemetry.validators import validate_batch
-from apps.backend.tests.helpers import make_batch, make_sample
+from telemetry.validators import validate_batch
+from tests.helpers import make_batch, make_sample
 
 
 AGENT_FILE = Path(__file__).resolve().parents[2] / "telemetry-agent" / "normalizer.py"

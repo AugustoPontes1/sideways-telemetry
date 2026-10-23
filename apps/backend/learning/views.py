@@ -4,8 +4,8 @@ from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.backend.sessions.models import DrivingSession
-from apps.backend.telemetry.models import TelemetrySample
+from sessions.models import DrivingSession
+from telemetry.models import TelemetrySample
 from .services import TOPICS, ExerciseUnavailable, compare_answer, generate_exercise
 
 

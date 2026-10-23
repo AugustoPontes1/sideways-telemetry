@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from apps.backend.learning.services import compare_answer, generate_exercise, numeric_rank2
+from learning.services import compare_answer, generate_exercise, numeric_rank2
 
 
 s1 = SimpleNamespace(

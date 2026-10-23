@@ -4,7 +4,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     initial = True
-    dependencies = [("sessions", "0001_initial")]
+    dependencies = [("drift_sessions", "0001_initial")]
     operations = [
         migrations.CreateModel(
             name="TelemetrySample",
@@ -36,7 +36,7 @@ class Migration(migrations.Migration):
                 ("frame_hash", models.CharField(max_length=64)),
                 ("session", models.ForeignKey(
                     on_delete=django.db.models.deletion.CASCADE,
-                    related_name="samples", to="sessions.drivingsession",
+                    related_name="samples", to="drift_sessions.drivingsession",
                 )),
             ],
             options={"ordering": ["session_id", "sequence"]},
