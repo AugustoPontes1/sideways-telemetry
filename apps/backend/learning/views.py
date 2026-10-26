@@ -1,4 +1,4 @@
-"""API do Modo Estudo: solução só aparece em reveal=1."""
+"""Study Mode API: the solution appears only when reveal=1."""
 from django.shortcuts import get_object_or_404
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
@@ -10,7 +10,7 @@ from .services import TOPICS, ExerciseUnavailable, compare_answer, generate_exer
 
 
 def locate_samples(session, query):
-    """Se não vierem índices, usa as duas amostras mais recentes."""
+    """Use the two most recent samples when indices are not provided."""
     first_raw, second_raw = query.get("a"), query.get("b")
     if (first_raw is None) != (second_raw is None):
         raise ExerciseUnavailable("Informe ambos a e b, ou nenhum")

@@ -1,4 +1,4 @@
-"""WebSockets: entrada de lotes autenticada por token; observação ao vivo por sessão."""
+"""WebSockets: token-authenticated batch ingestion and live session monitoring."""
 from __future__ import annotations
 
 import hmac
@@ -22,7 +22,7 @@ def stream_group(stream_id) -> str:
 
 
 class IngestConsumer(AsyncWebsocketConsumer):
-    """Contrato do agent transport.py: ACK total apenas após transação confirmada."""
+    """Contract with agent transport.py: send a full ACK only after transaction commit."""
 
     async def connect(self):
         headers = [v for k, v in self.scope.get("headers", []) if k.lower() == b"authorization"]
@@ -53,7 +53,7 @@ class IngestConsumer(AsyncWebsocketConsumer):
             result = await database_sync_to_async(persist_batch)(batch)
         except (json.JSONDecodeError, InvalidBatch) as exc:
             LOG.warning("Lote de telemetria rejeitado: %s", exc)
-            # Não confirmar. O cliente mantém o spool para correção/reenvio.
+            # Do not acknowledge. The client retains the spool for correction/retry.
             await self.send(text_data=json.dumps({
                 "type": "telemetry.error", "code": "invalid_batch", "reason": str(exc)[:200],
             }))
@@ -67,14 +67,14 @@ class IngestConsumer(AsyncWebsocketConsumer):
             await self.close(code=1011)
             return
 
-        # Neste ponto, o commit em persist_batch() já aconteceu.
+        # At this point, persist_batch() has already committed.
         await self.send(text_data=json.dumps({
             "type": "telemetry.ack",
             "batch_id": str(batch.batch_id),
             "accepted": result.acknowledged,  # inclui duplicatas previamente salvas
         }, separators=(",", ":")))
 
-        # Atualização ao vivo é best-effort; falhas aqui NÃO cancelam ACK.
+        # Live updates are best-effort; failures here do NOT cancel the ACK.
         for sample in result.live_updates:
             try:
                 await self.channel_layer.group_send(
@@ -86,13 +86,13 @@ class IngestConsumer(AsyncWebsocketConsumer):
 
 
 def stream_group_str(stream_id: str) -> str:
-    """Mesmo nome de grupo, a partir de UUID em texto."""
+    """Build the same group name from a UUID string."""
     from uuid import UUID
     return stream_group(UUID(stream_id))
 
 
 class SessionLiveConsumer(AsyncWebsocketConsumer):
-    """Canal read-only para usuários staff logados (cookie + Origin permitido)."""
+    """Read-only channel for logged-in staff users (cookie + allowed Origin)."""
 
     async def connect(self):
         user = self.scope.get("user")
@@ -110,7 +110,7 @@ class SessionLiveConsumer(AsyncWebsocketConsumer):
         await self.accept()
 
     async def receive(self, text_data=None, bytes_data=None):
-        # Dashboard recebe eventos, mas não pode alterar telemetria via WebSocket.
+        # The dashboard receives events but cannot change telemetry over WebSocket.
         await self.close(code=1003)
 
     async def telemetry_update(self, event):

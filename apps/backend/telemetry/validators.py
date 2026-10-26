@@ -1,4 +1,4 @@
-"""Contrato estrito do Telemetry Agent v1; sem importar Django (testável isoladamente)."""
+"""Strict Telemetry Agent v1 contract; no Django imports (independently testable)."""
 from __future__ import annotations
 
 import hashlib
@@ -16,7 +16,7 @@ MIN_TIMESTAMP_NS = 946_684_800_000_000_000  # 2000-01-01 UTC
 
 
 class InvalidBatch(ValueError):
-    """Lote malformado; NÃO confirmar via ACK."""
+    """Malformed batch; do NOT acknowledge it."""
 
 
 def checked_int(data: Mapping, key: str, lo: int = 0, hi: int = 2**63 - 1) -> int:
@@ -62,7 +62,7 @@ def checked_uuid(value: Any, name: str) -> uuid.UUID:
 
 
 def ns_to_datetime(timestamp_ns: int) -> datetime:
-    """Converte epoch-ns preservando microssegundos e sem aritmética float."""
+    """Convert epoch nanoseconds, preserving microseconds without float arithmetic."""
     seconds, nano = divmod(timestamp_ns, 1_000_000_000)
     return datetime.fromtimestamp(seconds, tz=timezone.utc).replace(
         microsecond=nano // 1000,

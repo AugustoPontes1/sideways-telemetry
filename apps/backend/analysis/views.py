@@ -20,7 +20,7 @@ class SessionAnalysisView(APIView):
 
 
 class TrajectoryComparisonView(APIView):
-    """Compara janela recente a uma captura de referência da MESMA pista."""
+    """Compare a recent window with a reference capture from the SAME track."""
     permission_classes = [IsAdminUser]
 
     def get(self, request, stream_id):
@@ -37,7 +37,7 @@ class TrajectoryComparisonView(APIView):
             return Response({"detail": "Comparações exigem a mesma pista"}, status=400)
 
         def last_positions(stream):
-            # Últimos 2000 pontos; decimação leve para custo computacional limitado.
+            # Last 2,000 points; light decimation to limit computational cost.
             rows = list(TelemetrySample.objects.filter(session=stream)
                         .order_by("-sequence").values_list("position_world_m", flat=True)[:2000])
             rows.reverse()

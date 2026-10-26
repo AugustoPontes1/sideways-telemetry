@@ -1,11 +1,11 @@
-"""ASGI: HTTP Django, WebSocket de ingestão e leitura ao vivo."""
+"""ASGI: Django HTTP, WebSocket ingestion, and live reads."""
 import os
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 
 from django.core.asgi import get_asgi_application
 
-# Popula o registro dos aplicativos antes de importar consumers que usam models.
+# Populate the app registry before importing consumers that use models.
 django_application = get_asgi_application()
 
 from channels.auth import AuthMiddlewareStack
@@ -18,9 +18,9 @@ from telemetry.consumers import IngestConsumer, SessionLiveConsumer
 application = ProtocolTypeRouter({
     "http": django_application,
     "websocket": URLRouter([
-        # Cliente não-browser usa Authorization: Bearer, sem Origin.
+        # Non-browser clients use Authorization: Bearer without an Origin.
         path("ws/ingest/", IngestConsumer.as_asgi()),
-        # Browser usa cookie de sessão Django e checagem de Origin.
+        # Browsers use the Django session cookie and an Origin check.
         path("ws/sessions/<uuid:stream_id>/live/",
              AllowedHostsOriginValidator(AuthMiddlewareStack(SessionLiveConsumer.as_asgi()))),
     ]),

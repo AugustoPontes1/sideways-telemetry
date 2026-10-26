@@ -42,7 +42,7 @@ services:
         python manage.py migrate --noinput
         python manage.py collectstatic --noinput
         exec daphne -b 0.0.0.0 -p 8000 config.asgi:application
-    # HAProxy na mesma VM: publica somente localhost. Outra VM requer firewall restrito.
+# HAProxy on the same VM: expose only localhost. Another VM requires a restrictive firewall.
     ports:
       - "127.0.0.1:${BACKEND_PORT:-8000}:8000"
     depends_on:

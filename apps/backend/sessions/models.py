@@ -1,4 +1,4 @@
-"""Sessão de captura identificada pelo stream_id do AC Bridge."""
+"""Capture session identified by the AC Bridge stream_id."""
 from django.db import models
 
 

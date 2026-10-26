@@ -1,4 +1,4 @@
-"""Mensagens artificiais compatíveis com o normalizer.py do Telemetry Agent."""
+"""Synthetic messages compatible with the Telemetry Agent's normalizer.py."""
 import time
 import uuid
 

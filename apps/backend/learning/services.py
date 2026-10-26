@@ -1,4 +1,4 @@
-"""Exercícios gerados de telemetria real; solução oculta por padrão."""
+"""Exercises generated from real telemetry; solutions are hidden by default."""
 from __future__ import annotations
 
 import math
@@ -6,7 +6,7 @@ from typing import Any
 
 
 class ExerciseUnavailable(ValueError):
-    """Tema ou amostras não permitem um exercício matemático bem definido."""
+    """The topic or samples do not support a well-defined math exercise."""
 
 
 TOPICS = {
@@ -27,7 +27,7 @@ def p3(x: float) -> float:
 
 
 def vec_xz(values: list[float]) -> tuple[float, float]:
-    """Projeção nos eixos globais X,Z (assumidos horizontais até validar)."""
+    """Project onto global X,Z axes (assumed horizontal until verified)."""
     return p3(values[0]), p3(values[2])
 
 
@@ -186,7 +186,7 @@ def generate_exercise(topic: str, sample_a: Any, sample_b: Any,
 
 
 def compare_answer(expected: Any, answer: Any) -> bool:
-    """Tolerância explícita para números da telemetria; inteiro e bool exatos."""
+    """Use explicit tolerance for telemetry numbers; require exact integers and booleans."""
     if type(expected) is bool:
         return type(answer) is bool and expected == answer
     if type(expected) in (int, float):

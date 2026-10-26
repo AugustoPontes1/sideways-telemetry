@@ -1,4 +1,4 @@
-"""Análise conservadora: reporta medidas e indícios, sem diagnosticar 'erro de drift'."""
+"""Conservative analysis: reports measurements and signals without diagnosing a 'drift error'."""
 from __future__ import annotations
 
 from django.db.models import Avg, Count, Max, Min
@@ -13,7 +13,7 @@ def summarize_session(session, event_window: int = 2000) -> dict:
         speed_avg_kmh=Avg("speed_kmh"), rpm_min=Min("rpm"), rpm_max=Max("rpm"),
         throttle_avg=Avg("throttle"),
     )
-    # A janela ordenada é intencional; a sessão completa pode ter milhões de pontos.
+    # The ordered window is intentional; a full session may contain millions of points.
     latest = list(qs.order_by("-sequence")[:event_window])
     latest.reverse()
     events = detect_input_events(latest)
@@ -33,13 +33,13 @@ def summarize_session(session, event_window: int = 2000) -> dict:
 
 
 def detect_input_events(samples: list) -> list[dict]:
-    """Derivadas discretas simples com limiares ilustrativos (calibrar em campo)."""
+    """Simple discrete derivatives with illustrative thresholds (calibrate in the field)."""
     events = []
     last_emitted: dict[str, float] = {}
     for previous, current in zip(samples, samples[1:]):
         dt = (current.payload["timestamp_unix_ns"] - previous.payload["timestamp_unix_ns"]) / 1e9
         if not 0.005 <= dt <= 1.0:
-            continue  # pausas, saltos e amostras fora de ordem
+            continue  # Pauses, jumps, and out-of-order samples.
         time_s = current.payload["timestamp_unix_ns"] / 1e9
         rates = [
             ("throttle_change", abs(current.throttle - previous.throttle) / dt, 1.5, "fração/s"),

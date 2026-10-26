@@ -1,4 +1,4 @@
-"""Comparação GEOMÉTRICA com referência gravada, nunca linha ótima presumida."""
+"""GEOMETRIC comparison with a recorded reference, never an assumed optimal line."""
 from __future__ import annotations
 
 import math
@@ -6,7 +6,7 @@ from typing import Iterable
 
 
 def closest_distance_xz(position: list[float], polyline: list[list[float]]) -> float:
-    """Menor distância euclidiana XZ a um segmento da polilinha de referência."""
+    """Minimum Euclidean XZ distance to a segment of the reference polyline."""
     x, z = position[0], position[2]
     if not polyline:
         raise ValueError("A trajetória de referência está vazia")

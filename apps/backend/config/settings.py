@@ -1,4 +1,4 @@
-"""Configurações. SQLite / memória apenas no ambiente local; PostgreSQL/Redis em produção."""
+"""Settings. SQLite/in-memory only locally; PostgreSQL/Redis in production."""
 from __future__ import annotations
 
 import os
@@ -83,7 +83,7 @@ if os.getenv("DATABASE_ENGINE", "sqlite").lower() == "postgresql":
         "PASSWORD": os.getenv("POSTGRES_PASSWORD", ""),
         "HOST": os.getenv("POSTGRES_HOST", "db"),
         "PORT": os.getenv("POSTGRES_PORT", "5432"),
-        "CONN_MAX_AGE": 0,  # evitar conexões persistentes no executor async
+        "CONN_MAX_AGE": 0,  # Avoid persistent connections in the async executor.
     }}
 else:
     if not DEBUG:
@@ -130,7 +130,7 @@ STORAGES = {
 }
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# Ativar somente atrás de proxy reverso que remove e define X-Forwarded-Proto.
+# Enable only behind a reverse proxy that strips and sets X-Forwarded-Proto.
 if env_bool("DJANGO_TRUST_PROXY_PROTO"):
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_SSL_REDIRECT = env_bool("DJANGO_SECURE_SSL_REDIRECT", False)

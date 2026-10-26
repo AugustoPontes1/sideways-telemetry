@@ -1,4 +1,4 @@
-"""Amostras preservadas por sequência para evitar repetição nos reenvios."""
+"""Samples retained by sequence to prevent duplicates on retries."""
 from django.db import models
 
 
@@ -29,7 +29,7 @@ class TelemetrySample(models.Model):
     acceleration_g = models.JSONField(default=list)
     angular_velocity_local_rad_s = models.JSONField(default=list)
     wheel_slip_raw = models.JSONField(default=list)
-    # Todos os campos normalizados, para análises futuras sem migrações imediatas.
+    # Keep all normalized fields for future analysis without requiring immediate migrations.
     payload = models.JSONField()
     frame_hash = models.CharField(max_length=64)
 

@@ -1,4 +1,4 @@
-"""Valida a integração com o normalizer.py REAL do Telemetry Agent anterior."""
+"""Validate integration with the REAL normalizer.py from the previous Telemetry Agent."""
 import importlib.util
 import sys
 from pathlib import Path
@@ -22,7 +22,7 @@ def test_normalized_previous_agent_is_accepted():
     spec.loader.exec_module(module)
 
     original = make_sample()
-    original["telemetry"].pop("speed_mps")  # AC Bridge ainda não transmite isso
+    original["telemetry"].pop("speed_mps")  # AC Bridge does not transmit this yet.
     normalized = module.TelemetryNormalizer().normalize(original)
     assert normalized["telemetry"]["speed_mps"] == pytest.approx(56.0 / 3.6)
 

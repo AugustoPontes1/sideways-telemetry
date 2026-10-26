@@ -1,4 +1,4 @@
-"""API paginada para alimentar curvas 2D e replays 3D."""
+"""Paginated API for feeding 2D plots and 3D replays."""
 from django.shortcuts import get_object_or_404
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response

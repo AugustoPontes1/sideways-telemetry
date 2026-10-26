@@ -1,4 +1,4 @@
-"""Persistência transacional de lotes, com deduplicação e ACK somente após commit."""
+"""Transactional batch persistence with deduplication and ACK only after commit."""
 from __future__ import annotations
 
 from collections import defaultdict
@@ -52,9 +52,9 @@ def sample_to_model(session: DrivingSession, item: ValidatedSample) -> Telemetry
 
 
 def persist_batch(batch: ValidatedBatch) -> PersistResult:
-    """Idempotência em (stream,sequence); verifica conteúdo em conflitos.
+    """Ensure idempotency for (stream, sequence) and verify content on conflicts.
 
-    A transação cobre TODO o lote, ainda que contenha múltiplos streams.
+    The transaction covers the ENTIRE batch, including batches with multiple streams.
     Serializa gravadores por stream via select_for_update (PostgreSQL).
     """
     grouped: dict[Any, list[ValidatedSample]] = defaultdict(list)
@@ -64,7 +64,7 @@ def persist_batch(batch: ValidatedBatch) -> PersistResult:
     live_updates: list[dict[str, Any]] = []
 
     with transaction.atomic():
-        # Ordenação estável previne inversão de locks com lotes multi-stream.
+        # Stable ordering prevents lock inversion across multi-stream batches.
         for stream_id, group in sorted(grouped.items(), key=lambda pair: pair[0].hex):
             newest = max(group, key=lambda item: item.sequence)
             oldest_time = min(item.sampled_at for item in group)
@@ -102,8 +102,8 @@ def persist_batch(batch: ValidatedBatch) -> PersistResult:
                     [sample_to_model(session, item) for item in unique_new.values()]
                 )
                 inserted_count += len(unique_new)
-                # Publica apenas o que entrou pela primeira vez, em lote, preservando
-                # todas as amostras para interpolação 2D/3D a ~50 Hz no frontend.
+                # Publish only newly inserted samples, in batches, preserving every
+                # sample for 2D/3D interpolation at ~50 Hz in the frontend.
                 live_samples = []
                 for new in sorted(unique_new.values(), key=lambda item: item.sequence):
                     f = new.frame
@@ -141,6 +141,6 @@ def persist_batch(batch: ValidatedBatch) -> PersistResult:
                 "car", "track", "session_type", "updated_at",
             ])
 
-    # Saiu da transação: todos os registros já foram confirmados pelo banco.
+    # Outside the transaction: all records have been committed by the database.
     return PersistResult(acknowledged=len(batch.samples), inserted=inserted_count,
                          live_updates=live_updates)

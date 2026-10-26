@@ -1,4 +1,4 @@
-"""Execute com pytest-django + Django/Channels instalados no WSL/homelab."""
+"""Run with pytest-django and Django/Channels installed in WSL or the homelab."""
 import copy
 import uuid
 
