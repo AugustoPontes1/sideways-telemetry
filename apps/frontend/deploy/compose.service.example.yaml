@@ -1,5 +1,5 @@
-# Trecho para adicionar à seção `services:` de backend/compose.yaml.
-# NÃO é um Compose standalone. Executar do diretório backend/.
+# Add this snippet to the `services:` section of backend/compose.yaml.
+# This is NOT a standalone Compose file. Run it from the backend/ directory.
 frontend:
   build:
     context: ../frontend

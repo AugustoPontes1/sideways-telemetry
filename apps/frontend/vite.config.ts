@@ -1,8 +1,8 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// Mesma origem no navegador: /api, /admin, /ws e cookies da sessão Django.
-// Aponte VITE_BACKEND_TARGET apenas para um servidor Django sob seu controle.
+// Same browser origin for /api, /admin, /ws, and Django session cookies.
+// Set VITE_BACKEND_TARGET only to a Django server you control.
 const backend = process.env.VITE_BACKEND_TARGET || 'http://127.0.0.1:8000';
 
 export default defineConfig({

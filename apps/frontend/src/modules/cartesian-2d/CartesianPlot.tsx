@@ -41,7 +41,7 @@ export function CartesianPlot({ samples, reference, cursorSequence, onSelect, sh
     });
     if (showVelocity) {
       const v = selected.velocity_world_mps;
-      // Seta de velocidade: 0,4 s de projeção, apenas para visualização.
+// Velocity arrow: 0.4-second projection for visualization only.
       const px = selected.position_world_m[0], pz = selected.position_world_m[2];
       data.push({
         type: 'scatter', mode: 'lines+markers', name: 'Vetor velocidade × 0,4s',

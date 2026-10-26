@@ -31,7 +31,7 @@ export function usePlayback(samples: TelemetrySample[], selectedSeq: number | nu
         setPlaying(false);
         return;
       }
-      // Busca binária para não percorrer a sessão inteira a cada quadro.
+// Use binary search instead of scanning the entire session on every frame.
       let lo = 0, hi = playback.length - 1;
       while (lo < hi) {
         const middle = Math.floor((lo + hi + 1) / 2);

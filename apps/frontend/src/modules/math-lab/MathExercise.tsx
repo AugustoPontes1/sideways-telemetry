@@ -33,7 +33,7 @@ export function MathExercise({ streamId, samples, demo }: { streamId: string; sa
   }, [demo]);
 
   const candidateSamples = useMemo(() => downsample(samples, 80), [samples]);
-  // Escolhas ficam congeladas ao carregar a janela; atualizações ao vivo não apagam a resposta do aluno.
+// Freeze choices when loading the window; live updates do not clear the student's answer.
   useEffect(() => {
     if (samples.length < 2) return;
     setA((old) => old !== null && samples.some((s) => s.sequence === old) ? old : samples[Math.max(0, Math.floor(samples.length * .35))].sequence);

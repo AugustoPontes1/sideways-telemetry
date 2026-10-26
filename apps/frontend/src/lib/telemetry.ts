@@ -6,7 +6,7 @@ export function isVec3(v: unknown): v is Vec3 {
   return Array.isArray(v) && v.length === 3 && v.every((x) => typeof x === 'number' && Number.isFinite(x));
 }
 
-/** Ignora mensagens corrompidas sem derrubar a tela; servidor já valida a origem. */
+/** Ignore malformed messages without crashing the UI; the server already validates the source. */
 export function normalizeFrame(input: unknown): TelemetrySample | null {
   if (!input || typeof input !== 'object') return null;
   const v = input as Record<string, unknown>;
@@ -16,7 +16,7 @@ export function normalizeFrame(input: unknown): TelemetrySample | null {
   if (!isVec3(v.position_world_m) || !isVec3(v.velocity_world_mps)) return null;
   let sampled = typeof v.sampled_at === 'string' ? v.sampled_at : '';
   if (!sampled && typeof v.timestamp_unix_ns === 'number') {
-    // Precisão sub-ms não é necessária na interface: servidor usa ns internamente.
+// Sub-millisecond precision is unnecessary in the UI; the server uses ns internally.
     sampled = new Date(v.timestamp_unix_ns / 1e6).toISOString();
   }
   if (!sampled || Number.isNaN(Date.parse(sampled))) return null;
@@ -41,7 +41,7 @@ export function normalizeFrame(input: unknown): TelemetrySample | null {
   };
 }
 
-/** Ordena, remove duplicatas por sequência e limita memória da aba. */
+/** Sort, remove duplicate sequences, and limit tab memory use. */
 export function mergeSamples(
   oldValues: TelemetrySample[], incoming: TelemetrySample[], limit = MAX_SAMPLES_IN_MEMORY,
 ): TelemetrySample[] {
@@ -74,7 +74,7 @@ export function formatNumber(value: number | null | undefined, digits = 1): stri
     ? value.toLocaleString('pt-BR', { maximumFractionDigits: digits, minimumFractionDigits: digits })
     : '—';
 }
-/** Decima apenas para renderização; os cálculos preservam amostras em memória. */
+/** Downsample for rendering only; calculations preserve in-memory samples. */
 export function downsample<T>(values: T[], maxCount = 900): T[] {
   if (values.length <= maxCount) return values;
   const stride = (values.length - 1) / (maxCount - 1);

@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import type { TelemetrySample } from '../../lib/types';
 import { radiansToDegrees } from '../../lib/telemetry';
 
-/** Modelo geométrico didático, NÃO reproduz a carroceria nem as rodas reais do mod. */
+/** Educational geometric model; it does NOT reproduce the mod's actual bodywork or wheels. */
 export function CarModel({ sample, origin }: { sample: TelemetrySample; origin: [number, number, number] }) {
   const position: [number, number, number] = [
     sample.position_world_m[0] - origin[0],

@@ -1,6 +1,6 @@
 import type { ExerciseValue } from '../../lib/types';
 
-/** Entrada do aluno é JSON válido: número, booleano, vetor ou objeto. */
+/** Student input must be valid JSON: a number, boolean, array, or object. */
 export function parseStudentAnswer(raw: string): ExerciseValue {
   const trimmed = raw.trim();
   if (!trimmed) throw new Error('Digite uma resposta.');
@@ -11,7 +11,7 @@ export function parseStudentAnswer(raw: string): ExerciseValue {
   }
 }
 
-/** Apenas modo DEMO. Em produção, verificação é feita pelo backend Django. */
+/** DEMO mode only. In production, answers are checked by the Django backend. */
 export function compareDemoAnswer(expected: ExerciseValue, actual: ExerciseValue): boolean {
   if (typeof expected === 'number') return typeof actual === 'number' && Number.isFinite(actual) &&
     Math.abs(expected - actual) <= Math.max(.02, Math.abs(expected) * .001);

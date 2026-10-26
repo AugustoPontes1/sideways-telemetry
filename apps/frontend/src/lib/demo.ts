@@ -1,4 +1,4 @@
-/** Dataset DETERMINÍSTICO E FICTÍCIO. Não é análise de telemetria real. */
+/** DETERMINISTIC, FICTIONAL dataset. This is not real telemetry analysis. */
 import type { DrivingSession, TelemetrySample, Exercise, LearningTopic, SessionAnalysis } from './types';
 
 export const DEMO_ID = '00000000-0000-4000-8000-000000000001';

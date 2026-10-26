@@ -10,7 +10,7 @@ interface StreamResult {
   error: string | null;
 }
 
-/** REST para histórico + WS para deltas + reconciliação periódica contra perda de pacotes. */
+/** REST for history + WS for deltas + periodic reconciliation after packet loss. */
 export function useSessionStream(session: DrivingSession | null, demo: boolean): StreamResult {
   const [samples, setSamples] = useState<TelemetrySample[]>(demo ? demoSamples : []);
   const [status, setStatus] = useState<LiveStatus>(demo ? 'demo' : 'offline');
@@ -48,11 +48,11 @@ export function useSessionStream(session: DrivingSession | null, demo: boolean):
     const catchUp = async () => {
       if (cancelled) return;
       try {
-        // Nas primeiras leituras, captura a janela mais recente da sessão.
+// On initial reads, capture the most recent window of the session.
         if (latestSeq.current < 0) {
           ingest(await getRecentSamples(session, MAX_SAMPLES_IN_MEMORY, controller.signal));
         } else {
-          // Reconciliar páginas durante quedas (limite de 3 mil amostras por ciclo).
+// Reconcile pages during outages (limit to 3,000 samples per cycle).
           for (let p = 0; p < 6 && !cancelled; p += 1) {
             const page = await getSamples(streamId, latestSeq.current, 500, controller.signal);
             const items = page.samples.map(normalizeFrame).filter((s): s is TelemetrySample => s !== null);
@@ -79,7 +79,7 @@ export function useSessionStream(session: DrivingSession | null, demo: boolean):
           const data = msg as Partial<LiveMessage>;
           if (data?.type !== 'telemetry.samples' || data.stream_id !== streamId || !Array.isArray(data.samples)) return;
           ingest(data.samples.map(normalizeFrame).filter((s): s is TelemetrySample => s !== null));
-        } catch { /* mensagem inválida, ignorar */ }
+        } catch { /* Ignore invalid messages. */ }
       };
       socket.onclose = (event) => {
         if (cancelled) return;
@@ -106,7 +106,7 @@ export function useSessionStream(session: DrivingSession | null, demo: boolean):
         socket.close();
       }
     };
-    // Reabrir só ao trocar a sessão; refresh dos metadados não precisa fechar o socket.
+// Reopen only when the session changes; metadata refreshes do not require closing the socket.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [streamId, demo]);
 

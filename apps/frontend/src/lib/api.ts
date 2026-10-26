@@ -10,7 +10,7 @@ export class ApiError extends Error {
   }
 }
 
-/** Django usa SessionAuthentication para as APIs. Nunca envie o Bearer do agente ao navegador. */
+/** Django uses SessionAuthentication for APIs. Never send the agent's Bearer token to the browser. */
 export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const headers = new Headers(options.headers);
   headers.set('Accept', 'application/json');
@@ -36,7 +36,7 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
       const json = await response.json() as { detail?: string | object; error?: string };
       if (typeof json.detail === 'string') message = json.detail;
       else if (typeof json.error === 'string') message = json.error;
-    } catch { /* resposta HTML de autenticação ou proxy */ }
+    } catch { /* HTML authentication or proxy response. */ }
     if ([401, 403].includes(response.status)) {
       message += ' — entre no /admin/login/ com um usuário staff.';
     }
@@ -64,7 +64,7 @@ export const getSamples = (id: string, after = -1, limit = 500, signal?: AbortSi
 export async function getRecentSamples(
   session: DrivingSession, maxCount = 2000, signal?: AbortSignal,
 ): Promise<TelemetrySample[]> {
-  // O endpoint atual só permite after: inicie perto de max_sequence para obter a cauda.
+// The current endpoint only supports `after`; start near max_sequence to fetch the tail.
   let after = Math.max(-1, session.max_sequence - maxCount);
   const all: TelemetrySample[] = [];
   for (let pageNum = 0; pageNum < Math.ceil(maxCount / 500) + 2; pageNum += 1) {

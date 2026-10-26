@@ -14,7 +14,7 @@ export interface DrivingSession {
   updated_at: string;
 }
 
-/** DTO unificado: REST traz sampled_at; WS publica timestamp_unix_ns. */
+/** Unified DTO: REST provides sampled_at; WS publishes timestamp_unix_ns. */
 export interface TelemetrySample {
   sequence: number;
   sampled_at: string;

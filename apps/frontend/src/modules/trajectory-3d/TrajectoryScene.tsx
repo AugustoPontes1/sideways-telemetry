@@ -10,7 +10,7 @@ export function TrajectoryScene({ samples, selected, reference }: {
   selected: TelemetrySample;
   reference: Vec3[];
 }) {
-  // Subtrair a origem reduz erros de precisão no WebGL com coordenadas grandes de mapas.
+// Subtracting the origin reduces WebGL precision errors with large map coordinates.
   const origin = useMemo<[number, number, number]>(() => [...samples[0].position_world_m], [samples]);
   const points = useMemo(() => downsample(samples, 1600).map((s) => [
     s.position_world_m[0] - origin[0],
