@@ -1,7 +1,7 @@
-"""Validação e normalização das amostras NDJSON produzidas pelo AC Bridge.
+"""Validation and normalization of NDJSON samples produced by AC Bridge.
 
-Não calcula física avançada: ângulo de drift e eixos locais dependem de
-validação de convenções de coordenadas com o jogo real.
+Does not calculate advanced physics: drift angle and local axes depend on
+validating coordinate conventions against the actual game.
 """
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from collections.abc import Mapping
 
 
 class InvalidTelemetry(ValueError):
-    """Mensagem incompatível com o contrato da ponte Windows."""
+    """Message incompatible with the Windows bridge contract."""
 
 
 def _integer(data: Mapping, key: str, *, minimum: int = 0, maximum: int = 2**63 - 1) -> int:
@@ -54,7 +54,7 @@ def _text(data: Mapping, key: str, max_length: int = 160) -> str:
 
 
 class TelemetryNormalizer:
-    """Garante schema v1, unidades explícitas e identificadores de deduplicação."""
+    """Ensure schema v1, explicit units, and deduplication identifiers."""
 
     def normalize(self, message: Mapping, received_at_unix_ns: int | None = None) -> dict:
         if not isinstance(message, Mapping) or message.get("type") != "telemetry":
@@ -105,7 +105,7 @@ class TelemetryNormalizer:
         for name in ("throttle", "brake", "clutch"):
             normalized[name] = min(normalized[name], 1.0)
 
-        # Conversão de unidade inequívoca, sem interpretar ainda yaw/heading.
+        # Convert units unambiguously without interpreting yaw/heading yet.
         normalized["speed_mps"] = normalized["speed_kmh"] / 3.6
         received_ns = time.time_ns() if received_at_unix_ns is None else received_at_unix_ns
         if type(received_ns) is not int or received_ns <= 0:

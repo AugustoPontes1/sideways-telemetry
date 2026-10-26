@@ -28,7 +28,7 @@ class TelemetryFrame:
     track: str
     speed_kmh: float
     rpm: int
-    gear: int  # normalized: -1=ré, 0=neutral, 1=first...
+    gear: int  # normalized: -1=reverse, 0=neutral, 1=first...
     throttle: float
     brake: float
     clutch: float
