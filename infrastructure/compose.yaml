@@ -1,5 +1,5 @@
-# Execute na raiz: docker compose --env-file infrastructure/.env -f infrastructure/compose.yaml up -d --build
-# Não publique PostgreSQL, Redis, Django ou Nginx diretamente no host.
+# Run from the repository root: docker compose --env-file infrastructure/.env -f infrastructure/compose.yaml up -d --build
+# Do not expose PostgreSQL, Redis, Django, or Nginx directly on the host.
 name: drift-telemetry-lab
 
 services:
@@ -89,7 +89,7 @@ services:
       - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
       - ./haproxy/certs:/etc/haproxy/certs:ro
     ports:
-      # Seguro por padrão (localhost); substitua HTTPS_BIND_IP pelo IP da LAN no .env.
+# Secure by default (localhost); set HTTPS_BIND_IP to the LAN IP in .env when needed.
       - "${HTTPS_BIND_IP:-127.0.0.1}:${HTTPS_PORT:-8443}:443"
     depends_on:
       frontend: {condition: service_started}
