@@ -73,7 +73,7 @@ services:
 
   frontend:
     build:
-      context: ../frontend
+      context: ../apps/frontend
       dockerfile: Dockerfile
     restart: unless-stopped
     expose: ["80"]
