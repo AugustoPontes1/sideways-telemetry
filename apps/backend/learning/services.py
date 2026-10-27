@@ -35,6 +35,10 @@ def determinant2(a: tuple[float, float], b: tuple[float, float]) -> float:
     return a[0] * b[1] - a[1] * b[0]
 
 
+def scale2(vector: tuple[float, float], factor: float) -> list[float]:
+    return [p3(factor * vector[0]), p3(factor * vector[1])]
+
+
 def numeric_rank2(a: tuple[float, float], b: tuple[float, float]) -> int:
     na, nb = math.hypot(*a), math.hypot(*b)
     if max(na, nb) < 1e-8:
@@ -77,6 +81,7 @@ def generate_exercise(topic: str, sample_a: Any, sample_b: Any,
             f"O vetor deslocamento é ({dx}, {dz}) m.",
             f"Seu módulo horizontal é sqrt(({dx})² + ({dz})²) = {p3(math.hypot(dx, dz))} m.",
             "Esse deslocamento é entre dois instantes, não a distância total percorrida na curva.",
+            f"Resposta final: Δ=({dx}, {dz}) m e ||Δ||={p3(math.hypot(dx, dz))} m.",
         ]
     elif topic == "combination":
         exercise["question"] = "Ache a,b tais que P2-P1 = a(1,0)+b(0,1)."
@@ -86,6 +91,7 @@ def generate_exercise(topic: str, sample_a: Any, sample_b: Any,
             "A base canônica ordenada do plano é B=((1,0),(0,1)).",
             f"a(1,0)+b(0,1)=(a,b)=({dx},{dz}).",
             f"Comparando coordenadas: a={dx} e b={dz}.",
+            f"Resposta final: a={dx} e b={dz}.",
         ]
     elif topic == "determinant":
         det = p3(determinant2(v1, v2))
@@ -96,17 +102,38 @@ def generate_exercise(topic: str, sample_a: Any, sample_b: Any,
             f"A=[[{v1[0]},{v1[1]}],[{v2[0]},{v2[1]}]].",
             f"det(A)=({v1[0]})({v2[1]})-({v1[1]})({v2[0]})={det}.",
             "Determinante próximo de zero sugere direções quase dependentes, mas dados reais têm ruído.",
+            f"Resposta final: det(A)={det}.",
         ]
     elif topic == "basis_dimension":
         rank = numeric_rank2(v1, v2)
+        determinant = p3(determinant2(v1, v2))
+        basis_vector = v1 if math.hypot(*v1) >= 1e-8 else v2
+        basis = [list(v1), list(v2)] if rank == 2 else [list(basis_vector)] if rank == 1 else []
         exercise["question"] = "Estime a dimensão do subespaço gerado por estes dois vetores no plano XZ."
         exercise["inputs"] = {"v1": list(v1), "v2": list(v2), "numeric_tolerance": 1e-6}
         exercise["expected_result"] = rank
+        exercise["calculation"] = {
+            "sample_sequences": [sample_a.sequence, sample_b.sequence],
+            "sample_speed_mps": [
+                p3(getattr(sample_a, "speed_mps", math.hypot(*v1))),
+                p3(getattr(sample_b, "speed_mps", math.hypot(*v2))),
+            ],
+            "v1": list(v1),
+            "v2": list(v2),
+            "matrix": [list(v1), list(v2)],
+            "determinant": determinant,
+            "basis": basis,
+            "dimension": rank,
+            "numeric_tolerance": 1e-6,
+        }
         steps = [
-            "Monte A com os vetores velocidade como linhas ou colunas.",
-            f"det(A)={p3(determinant2(v1, v2))}; compare com as normas e tolerância numérica.",
-            f"O posto numérico é {rank}, igual à dimensão do espaço gerado.",
+            f"Os vetores da simulação são v1=({v1[0]}, {v1[1]}) e v2=({v2[0]}, {v2[1]}) m/s.",
+            f"Monte A=[[{v1[0]},{v1[1]}],[{v2[0]},{v2[1]}]].",
+            f"det(A)=({v1[0]})({v2[1]})-({v1[1]})({v2[0]})={determinant}; compare com a tolerância 1e-6.",
+            f"O posto numérico é {rank}, igual à dimensão do espaço gerado por v1 e v2.",
+            f"Uma base numérica é {basis}.",
             "A dimensão é aproximada por causa de arredondamentos e ruído da telemetria.",
+            f"Resposta final: dimensão(span{{v1,v2}})={rank}.",
         ]
     elif topic == "affine_subspace":
         rank = 1 if math.hypot(*v1) > 1e-8 else 0
@@ -121,28 +148,83 @@ def generate_exercise(topic: str, sample_a: Any, sample_b: Any,
         exercise["inputs"] = {"p": list(p1), "v": list(v1)}
         exercise["expected_result"] = {"is_subspace": is_subspace, "dimension": rank if is_subspace else None}
         if is_subspace:
-            steps = [
-                "Como p pertence a span(v), W coincide com span(v).",
-                "O vetor zero pertence a W, e combinações lineares permanecem em W.",
-                f"Portanto W é um subespaço de dimensão {rank}.",
-            ]
+            if rank:
+                parameter = -p1[0] / v1[0] if abs(v1[0]) >= abs(v1[1]) else -p1[1] / v1[1]
+                zero_check = [p3(p1[0] + parameter * v1[0]), p3(p1[1] + parameter * v1[1])]
+                steps = [
+                    f"Os valores da simulação são p=({p1[0]}, {p1[1]}) e v=({v1[0]}, {v1[1]}) no plano XZ.",
+                    f"W={{p+t·v}}={{({p1[0]}, {p1[1]})+t·({v1[0]}, {v1[1]}) | t∈ℝ}}.",
+                    f"det(p,v)=({p1[0]})({v1[1]})-({p1[1]})({v1[0]})={p3(determinant2(p1, v1))}; os vetores são colineares.",
+                    f"Com t={p3(parameter)}, p+t·v=({zero_check[0]}, {zero_check[1]}), portanto o vetor zero pertence a W.",
+                    "Como p é múltiplo de v, W coincide com span(v); a soma e a multiplicação por escalar permanecem nessa mesma direção.",
+                    f"Resposta final: W é subespaço e dimensão(W)={rank}.",
+                ]
+            else:
+                steps = [
+                    f"Os valores da simulação são p=({p1[0]}, {p1[1]}) e v=(0,0).",
+                    "Logo W contém somente o ponto (0,0), que é o subespaço nulo.",
+                    "A base do subespaço nulo é vazia, portanto sua dimensão é 0.",
+                    "Resposta final: W é subespaço e dimensão(W)=0.",
+                ]
         else:
-            steps = [
-                "Teste primeiro o vetor zero: existe t tal que p + t*v = (0,0)?",
-                "Não existe esse t porque p não pertence a span(v).",
-                "Como 0 não pertence a W, W não é subespaço. Não faz sentido atribuir dimensão vetorial a W.",
-            ]
+            if rank:
+                steps = [
+                    f"Os valores da simulação são p=({p1[0]}, {p1[1]}) e v=({v1[0]}, {v1[1]}).",
+                    f"det(p,v)=({p1[0]})({v1[1]})-({p1[1]})({v1[0]})={p3(determinant2(p1, v1))}≠0; p não está na direção de v.",
+                    "Assim não existe t real capaz de fazer p+t·v=(0,0); o vetor zero não pertence a W.",
+                    "Como 0 não pertence a W, W não é subespaço e não recebe dimensão vetorial.",
+                    "Resposta final: W não é subespaço e sua dimensão vetorial é indefinida.",
+                ]
+            else:
+                steps = [
+                    f"Os valores da simulação são p=({p1[0]}, {p1[1]}) e v=(0,0).",
+                    "W contém apenas o ponto p, que não é o vetor zero.",
+                    "Como 0 não pertence a W, W não é subespaço e não recebe dimensão vetorial.",
+                    "Resposta final: W não é subespaço e sua dimensão vetorial é indefinida.",
+                ]
     elif topic == "subspace":
         rank = 1 if math.hypot(*v1) > 1e-8 else 0
         exercise["question"] = "W=span{v}. Mostre que W é um subespaço de R² e encontre sua dimensão."
-        exercise["inputs"] = {"v": list(v1), "W": "{t*v | t real}"}
+        exercise["inputs"] = {
+            "v": list(v1),
+            "W": f"span{{v}} = {{t·({v1[0]}, {v1[1]}) | t ∈ ℝ}}",
+        }
         exercise["expected_result"] = {"is_subspace": True, "dimension": rank}
-        steps = [
-            "O vetor zero pertence a W porque 0*v=(0,0).",
-            "Se u=a*v e w=b*v, então u+w=(a+b)*v também pertence a W.",
-            "Para todo escalar k, k*u=(k*a)*v pertence a W.",
-            f"Logo W é subespaço. Sua dimensão é {rank} (vetor gerador {'não nulo' if rank else 'nulo'}).",
-        ]
+        exercise["calculation"] = {
+            "direction_vector": list(v1),
+            "unit": "m/s · velocidade projetada nos eixos X/Z",
+            "norm": p3(math.hypot(*v1)),
+            "angle_deg_from_x": p3(math.degrees(math.atan2(v1[1], v1[0]))) if rank else None,
+            "parametric_form": f"W = {{t·({v1[0]}, {v1[1]}) | t ∈ ℝ}}",
+            "multiples": [
+                {"t": factor, "vector": scale2(v1, factor)}
+                for factor in (-1, 0, 1, 2)
+            ],
+            "basis": [list(v1)] if rank else [],
+        }
+        if rank:
+            example_u = scale2(v1, 2)
+            example_w = scale2(v1, -1)
+            example_sum = scale2(v1, 1)
+            example_scalar = scale2(v1, 6)
+            steps = [
+                f"Os valores da simulação dão v=({v1[0]}, {v1[1]}) m/s, com ||v||={p3(math.hypot(*v1))}; como v≠(0,0), ele é um gerador não nulo.",
+                f"W=span{{v}}={{t·({v1[0]}, {v1[1]}) | t∈ℝ}}: cada ponto de W é um múltiplo de v.",
+                "Vetor zero: 0·v=(0,0), então (0,0)∈W.",
+                f"Exemplo numérico: escolha a=2 e b=-1. u=a·v=({example_u[0]}, {example_u[1]}) e w=b·v=({example_w[0]}, {example_w[1]}).",
+                f"Soma: u+w=({example_u[0]}, {example_u[1]})+({example_w[0]}, {example_w[1]})=({example_sum[0]}, {example_sum[1]})=1·v, portanto o resultado continua em W.",
+                f"Outro exemplo: com k=3, k·u=3·({example_u[0]}, {example_u[1]})=({example_scalar[0]}, {example_scalar[1]})=6·v, também em W.",
+                "Os valores a=2, b=-1 e k=3 ilustram a regra; para quaisquer a,b,k reais, u+w=(a+b)·v e k·u=(ka)·v.",
+                f"Dimensão é a quantidade de vetores de uma base. Aqui B={{v}}=({v1[0]}, {v1[1]}) é uma base com 1 vetor, porque v é não nulo e gera todo W.",
+                "Resposta final: W é subespaço, a base é {v} e dimensão(W)=1.",
+            ]
+        else:
+            steps = [
+                "Os valores da simulação dão v=(0,0).",
+                "W=span{v} contém somente (0,0), o subespaço nulo.",
+                "Sua base é vazia; como a dimensão é o número de vetores da base, dimensão(W)=0.",
+                "Resposta final: W é subespaço nulo e dimensão(W)=0.",
+            ]
     elif topic in ("gauss", "inverse"):
         matrix = [list(v1), list(v2)]
         a, b = v1
@@ -161,9 +243,10 @@ def generate_exercise(topic: str, sample_a: Any, sample_b: Any,
                 [p3(-c / det), p3(a / det)],
             ]
             steps = [
-                f"det(A)=ad-bc={p3(det)}, que é diferente de 0.",
+                f"A=[[{a},{b}],[{c},{d}]] e det(A)=({a})({d})-({b})({c})={p3(det)}, que é diferente de 0.",
                 "Para A=[[a,b],[c,d]], A^(-1)=(1/det(A))*[[d,-b],[-c,a]].",
-                f"Divida os quatro elementos por {p3(det)} e confira A*A^(-1)=I.",
+                f"Substituindo os valores: A^(-1)=(1/{p3(det)})*[[{d}, {-b}], [{-c}, {a}]]={exercise['expected_result']}.",
+                f"A multiplicação A*A^(-1) retorna a matriz identidade; resposta final: A^(-1)={exercise['expected_result']}.",
             ]
         else:
             rhs = [p3(2 * a - b), p3(2 * c - d)]
@@ -171,10 +254,11 @@ def generate_exercise(topic: str, sample_a: Any, sample_b: Any,
             exercise["inputs"] = {"matrix_A": matrix, "vector_b": rhs}
             exercise["expected_result"] = [2.0, -1.0]
             steps = [
-                "Monte a matriz ampliada [A|b] e, se necessário, troque as linhas para criar um pivô.",
-                "Elimine a primeira incógnita da segunda equação e faça substituição retroativa.",
-                "Como det(A) != 0, o sistema tem solução única: x=2 e y=-1.",
-                "Confira substituindo os valores nas duas equações originais.",
+                f"O sistema numérico é {a}x+({b})y={rhs[0]} e {c}x+({d})y={rhs[1]}.",
+                f"A matriz ampliada é [[{a},{b}|{rhs[0]}],[{c},{d}|{rhs[1]}]]. Após a eliminação de Gauss, obtemos x=2 e y=-1.",
+                f"Conferência na primeira equação: {a}·2+({b})·(-1)={rhs[0]}; na segunda: {c}·2+({d})·(-1)={rhs[1]}.",
+                "Como as duas equações são satisfeitas e det(A) != 0, a solução é única.",
+                "Resposta final: (x,y)=(2,-1).",
             ]
     exercise["note"] = (
         "Dados provenientes das projeções X/Z em coordenadas globais; "

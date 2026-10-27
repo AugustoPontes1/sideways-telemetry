@@ -25,6 +25,15 @@ def test_combination_and_subspace():
     assert exercise["expected_result"] == {"a": 4.0, "b": 3.0}
     subspace = generate_exercise("subspace", s1, s2)
     assert subspace["expected_result"] == {"is_subspace": True, "dimension": 1}
+    assert subspace["calculation"]["direction_vector"] == [3.0, 4.0]
+    assert subspace["calculation"]["norm"] == 5.0
+    assert subspace["calculation"]["multiples"][1] == {"t": 0, "vector": [0.0, 0.0]}
+    assert subspace["calculation"]["basis"] == [[3.0, 4.0]]
+    basis = generate_exercise("basis_dimension", s1, s2)
+    assert basis["calculation"]["sample_sequences"] == [1, 2]
+    assert basis["calculation"]["matrix"] == [[3.0, 4.0], [5.0, 6.0]]
+    assert basis["calculation"]["determinant"] == -2.0
+    assert basis["calculation"]["dimension"] == 2
 
 
 def test_determinant_inverse_gauss_and_rank():

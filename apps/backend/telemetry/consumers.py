@@ -36,6 +36,10 @@ class IngestConsumer(AsyncWebsocketConsumer):
         if (not expected_token or not received_token or
                 len(received_token) > 512 or
                 not hmac.compare_digest(received_token, expected_token)):
+            LOG.warning(
+                "Ingest WebSocket rejected: backend_token_configured=%s, received_token=%s, received_length=%d",
+                bool(expected_token), bool(received_token), len(received_token),
+            )
             await self.close(code=4401)
             return
         await self.accept()

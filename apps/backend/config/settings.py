@@ -22,7 +22,7 @@ if not SECRET_KEY:
         raise ImproperlyConfigured("DJANGO_SECRET_KEY é obrigatório em produção")
 
 ALLOWED_HOSTS = [h.strip() for h in os.getenv(
-    "DJANGO_ALLOWED_HOSTS", "localhost,192.168.0.8,127.0.0.1,[::1]"
+    "DJANGO_ALLOWED_HOSTS", "localhost,192.168.0.8,127.0.0.1,[::1],*"
 ).split(",") if h.strip()]
 CSRF_TRUSTED_ORIGINS = [url.strip() for url in os.getenv(
     "DJANGO_CSRF_TRUSTED_ORIGINS", ""
@@ -133,7 +133,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # Enable only behind a reverse proxy that strips and sets X-Forwarded-Proto.
 if env_bool("DJANGO_TRUST_PROXY_PROTO"):
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-SECURE_SSL_REDIRECT = env_bool("DJANGO_SECURE_SSL_REDIRECT", False)
+SECURE_SSL_REDIRECT = not DEBUG and env_bool("DJANGO_SECURE_SSL_REDIRECT", False)
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_HTTPONLY = True
@@ -156,5 +156,5 @@ CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:5173",
     "http://localhost:5173",
     "http://192.168.0.8:5173",
-    
+    "http://192.168.0.13:5173",
 ]
