@@ -13,9 +13,9 @@ const links = [
 ];
 
 export function Layout() {
-  const { demo, setDemo, sessions, activeSession, selectSession, loading, liveStatus, reloadSessions } = useApp();
+  const { demo, setDemo, sessions, activeSession, selectSession, loading, liveStatus, streamError, reloadSessions } = useApp();
   const [open, setOpen] = useState(false);
-  const statusLabel = demo ? 'Dados simulados' : liveStatus === 'connected' ? 'Ao vivo' : liveStatus === 'connecting' ? 'Conectando' : 'Desconectado';
+  const statusLabel = demo ? 'Dados simulados' : streamError && liveStatus === 'connected' ? 'Sem dados recentes' : liveStatus === 'connected' ? 'Ao vivo' : liveStatus === 'connecting' ? 'Conectando' : 'Desconectado';
   return <div className="app-shell">
     {open && <div className="sidebar-overlay" onClick={() => setOpen(false)} />}
     <aside className={`sidebar ${open ? 'sidebar-open' : ''}`}>
@@ -51,7 +51,7 @@ export function Layout() {
           </div>
         </div>
         <div className="topbar-right">
-          <span className={`status-pill ${demo ? 'demo' : liveStatus === 'connected' ? 'good' : 'off'}`}>
+          <span className={`status-pill ${demo ? 'demo' : liveStatus === 'connected' && !streamError ? 'good' : 'off'}`}>
             <span className="status-dot"/>{statusLabel}
           </span>
           <label className="demo-toggle" title="Exibir dados de demonstração ou integrar com o Django">

@@ -4,7 +4,7 @@ import { Panel } from '../components/Panel';
 import { PageTitle } from '../components/PageTitle';
 import { EmptyState } from '../components/EmptyState';
 import { TimeSeriesChart } from '../modules/telemetry/TelemetryCharts';
-import { DriverControls } from '../components/LiveHud';
+import { LiveDriverControls } from '../components/LiveHud';
 import { formatNumber } from '../lib/telemetry';
 
 export function TelemetryPage() {
@@ -21,7 +21,7 @@ export function TelemetryPage() {
           <div className="inline-kpi"><Activity size={18}/><span>Velocidade</span><strong>{formatNumber(cursorSample.speed_kmh)} km/h</strong></div>
           <div className="inline-kpi"><TimerReset size={18}/><span>RPM</span><strong>{formatNumber(cursorSample.rpm,0)}</strong></div>
           <div className="divider"/>
-          <DriverControls sample={cursorSample}/>
+          <LiveDriverControls />
         </Panel>
       </div>
       <div className="content-grid split-equal">

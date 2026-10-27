@@ -96,6 +96,26 @@ export interface LearningTopic {
   lessons: number[];
 }
 export type ExerciseValue = null | string | number | boolean | ExerciseValue[] | { [key: string]: ExerciseValue };
+export interface ExerciseCalculation {
+  direction_vector: number[];
+  unit: string;
+  norm: number;
+  angle_deg_from_x: number | null;
+  parametric_form: string;
+  multiples: Array<{ t: number; vector: number[] }>;
+  basis: number[][];
+}
+export interface BasisDimensionCalculation {
+  sample_sequences: number[];
+  sample_speed_mps: number[];
+  v1: number[];
+  v2: number[];
+  matrix: number[][];
+  determinant: number;
+  basis: number[][];
+  dimension: number;
+  numeric_tolerance: number;
+}
 export interface Exercise {
   topic: string;
   title: string;
@@ -104,6 +124,7 @@ export interface Exercise {
   question: string;
   inputs: Record<string, ExerciseValue>;
   expected_result: ExerciseValue;
+  calculation?: ExerciseCalculation | BasisDimensionCalculation;
   note: string;
   solution?: string[];
 }

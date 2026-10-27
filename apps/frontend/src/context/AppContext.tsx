@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { PropsWithChildren } from 'react';
 import { getSessions } from '../lib/api';
 import { demoSession } from '../lib/demo';
@@ -28,7 +28,7 @@ interface AppState {
 const Context = createContext<AppState | null>(null);
 
 export function AppProvider({ children }: PropsWithChildren) {
-  const [demo, setDemo] = useState(true);
+  const [demo, setDemo] = useState(false);
   const [realSessions, setRealSessions] = useState<DrivingSession[]>([]);
   const [selected, setSelected] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -36,6 +36,7 @@ export function AppProvider({ children }: PropsWithChildren) {
   const [reloadKey, setReloadKey] = useState(0);
   const [cursorSequence, setCursor] = useState<number | null>(null);
   const [isFollowing, setFollowing] = useState(true);
+  const selectionLocked = useRef(false);
 
   useEffect(() => {
     if (demo) return;
@@ -44,7 +45,8 @@ export function AppProvider({ children }: PropsWithChildren) {
     getSessions().then((data) => {
       if (controller.signal.aborted) return;
       setRealSessions(data);
-      setSelected((id) => data.some((s) => s.stream_id === id) ? id : data[0]?.stream_id || '');
+      setSelected((id) => selectionLocked.current && data.some((s) => s.stream_id === id)
+        ? id : data[0]?.stream_id || '');
       setError(null);
     }).catch((e: unknown) => {
       if (!controller.signal.aborted) setError(e instanceof Error ? e.message : 'Falha ao buscar sessões.');
@@ -73,7 +75,12 @@ export function AppProvider({ children }: PropsWithChildren) {
     setDemo,
     sessions,
     activeSession,
-    selectSession: (id) => { setSelected(id); setCursor(null); setFollowing(true); },
+    selectSession: (id) => {
+      selectionLocked.current = true;
+      setSelected(id);
+      setCursor(null);
+      setFollowing(true);
+    },
     error,
     loading,
     reloadSessions: () => setReloadKey((v) => v + 1),

@@ -8,30 +8,31 @@ interface CartesianPlotProps {
   samples: TelemetrySample[];
   reference: Vec3[];
   cursorSequence: number | null;
+  selectedSample?: TelemetrySample | null;
   onSelect: (seq: number) => void;
   showVelocity: boolean;
   height?: number;
 }
 
-export function CartesianPlot({ samples, reference, cursorSequence, onSelect, showVelocity, height = 490 }: CartesianPlotProps) {
+export function CartesianPlot({ samples, reference, cursorSequence, selectedSample, onSelect, showVelocity, height = 490 }: CartesianPlotProps) {
   const visible = useMemo(() => downsample(samples, 1100), [samples]);
-  const selected = samples.find((s) => s.sequence === cursorSequence) || samples.at(-1);
+  const selected = selectedSample || samples.find((s) => s.sequence === cursorSequence) || samples.at(-1);
   const referenceVisible = useMemo(() => downsample(reference, 1100), [reference]);
-  const data: Data[] = [
-    {
+  const trajectoryTrace = useMemo<Data>(() => ({
       type: 'scattergl', mode: 'lines', name: 'Trajetória executada',
       x: visible.map((s) => s.position_world_m[0]), y: visible.map((s) => s.position_world_m[2]),
       line: { color: '#12baa7', width: 3 },
       customdata: visible.map((s) => s.sequence),
       hovertemplate: 'X: %{x:.2f} m<br>Z: %{y:.2f} m<br>Seq #%{customdata}<extra>Carro</extra>',
-    },
-  ];
-  if (referenceVisible.length) data.push({
-    type: 'scattergl', mode: 'lines', name: 'Referência (não ideal)',
-    x: referenceVisible.map((v) => v[0]), y: referenceVisible.map((v) => v[2]),
-    line: { color: '#6ca4ff', width: 2.5, dash: 'dash' },
-    hovertemplate: 'X: %{x:.2f} m<br>Z: %{y:.2f} m<extra>Referência</extra>',
-  });
+  }), [visible]);
+  const referenceTrace = useMemo<Data | null>(() => referenceVisible.length ? ({
+      type: 'scattergl', mode: 'lines', name: 'Referência (não ideal)',
+      x: referenceVisible.map((v) => v[0]), y: referenceVisible.map((v) => v[2]),
+      line: { color: '#6ca4ff', width: 2.5, dash: 'dash' },
+      hovertemplate: 'X: %{x:.2f} m<br>Z: %{y:.2f} m<extra>Referência</extra>',
+  }) : null, [referenceVisible]);
+  const staticData = useMemo(() => referenceTrace ? [trajectoryTrace, referenceTrace] : [trajectoryTrace], [referenceTrace, trajectoryTrace]);
+  const data: Data[] = [...staticData];
   if (selected) {
     data.push({
       type: 'scatter', mode: 'markers', name: 'Carro (instante)',
@@ -52,7 +53,7 @@ export function CartesianPlot({ samples, reference, cursorSequence, onSelect, sh
       });
     }
   }
-  const layout: Partial<Layout> = {
+  const layout = useMemo<Partial<Layout>>(() => ({
     height,
     autosize: true,
     paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
@@ -63,7 +64,7 @@ export function CartesianPlot({ samples, reference, cursorSequence, onSelect, sh
     xaxis: { title: { text: 'X global (m)' }, gridcolor: '#273348', zeroline: false, showline: true, linecolor: '#394861' },
     yaxis: { title: { text: 'Z global (m)' }, gridcolor: '#273348', zeroline: false, scaleanchor: 'x', scaleratio: 1, showline: true, linecolor: '#394861' },
     dragmode: 'pan', hovermode: 'closest',
-  };
+  }), [height]);
   return <Plot
     data={data} layout={layout} style={{ width: '100%', height }} useResizeHandler
     config={{ responsive: true, displaylogo: false, scrollZoom: true }}

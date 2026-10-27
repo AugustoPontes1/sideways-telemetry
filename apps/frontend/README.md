@@ -30,13 +30,13 @@ frontend/
 Requer **Node 22.12+** (ou versão compatível com Vite 7) e npm. O sistema não precisa executar dentro do Windows; basta acessar Django via rede.
 
 ```bash
-cd ~/drift-telemetry-lab/frontend
+cd ~/drift-telemetry-lab/apps/frontend
 cp .env.example .env
 npm install
 npm run dev
 ```
 
-Abra `http://127.0.0.1:5173`. O app entra em **DEMO** (dados sintéticos identificados como fictícios) para que você possa testar a interface sem Assetto Corsa. Desative DEMO para carregar dados reais.
+Abra `http://127.0.0.1:5173`. O app inicia em modo ao vivo e carrega sessões do Django. Ative **DEMO** quando quiser testar a interface sem Assetto Corsa.
 
 Para se conectar ao backend de desenvolvimento do WSL:
 
@@ -49,12 +49,12 @@ export DJANGO_CSRF_TRUSTED_ORIGINS='http://127.0.0.1:5173'
 python manage.py runserver 127.0.0.1:8000
 
 # Terminal 2, WSL: frontend
-cd ~/drift-telemetry-lab/frontend
+cd ~/drift-telemetry-lab/apps/frontend
 npm run dev
 ```
 
 1. Entre por `http://127.0.0.1:5173/admin/login/?next=/`, usando **usuário Django `is_staff`**. O Django cria o cookie de sessão e CSRF na mesma origem visível ao navegador.
-2. Volte para a página, desative DEMO e escolha uma sessão.
+2. Volte para a página, confirme que DEMO está desativado e escolha uma sessão.
 3. Inicie AC Bridge no Windows, Telemetry Agent no WSL e envie ao backend conforme os respectivos READMEs.
 
 O proxy do Vite (`vite.config.ts`) encaminha `/api/`, `/admin/`, `/static/`, `/healthz/` e `/ws/` para o Django. Se Django rodar em outra VM, configure `VITE_BACKEND_TARGET=http://IP_INTERNO:8000` **somente para desenvolvimento em rede confiável**, atualize `DJANGO_ALLOWED_HOSTS` e permita a origem dev em `DJANGO_CSRF_TRUSTED_ORIGINS`. Nunca exponha Django debug ou o backend HTTP sem proteção na internet.

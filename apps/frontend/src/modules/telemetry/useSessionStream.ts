@@ -16,6 +16,7 @@ export function useSessionStream(session: DrivingSession | null, demo: boolean):
   const [status, setStatus] = useState<LiveStatus>(demo ? 'demo' : 'offline');
   const [error, setError] = useState<string | null>(null);
   const latestSeq = useRef(-1);
+  const reconciledSeq = useRef(-1);
   const streamId = session?.stream_id || '';
 
   useEffect(() => {
@@ -24,11 +25,13 @@ export function useSessionStream(session: DrivingSession | null, demo: boolean):
       setStatus('demo');
       setError(null);
       latestSeq.current = demoSamples.at(-1)?.sequence ?? -1;
+      reconciledSeq.current = latestSeq.current;
       return;
     }
     setSamples([]);
     setError(null);
     latestSeq.current = -1;
+    reconciledSeq.current = -1;
     if (!session) {
       setStatus('offline');
       return;
@@ -36,33 +39,47 @@ export function useSessionStream(session: DrivingSession | null, demo: boolean):
 
     let cancelled = false;
     let socket: WebSocket | null = null;
-    let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
+    let reconnectTimer: number | undefined;
     let reconnects = 0;
+    let historyLoaded = false;
+    let catchUpInFlight: Promise<void> | null = null;
+    const lastDataAt = { value: 0 };
     const controller = new AbortController();
     setStatus('connecting');
     const ingest = (items: TelemetrySample[]) => {
       if (cancelled || !items.length) return;
+      lastDataAt.value = Date.now();
+      setError(null);
       latestSeq.current = Math.max(latestSeq.current, ...items.map((v) => v.sequence));
       setSamples((old) => mergeSamples(old, items));
     };
-    const catchUp = async () => {
-      if (cancelled) return;
-      try {
+    const catchUp = (): Promise<void> => {
+      if (cancelled) return Promise.resolve();
+      if (catchUpInFlight) return catchUpInFlight;
+      catchUpInFlight = (async () => {
+        try {
 // On initial reads, capture the most recent window of the session.
-        if (latestSeq.current < 0) {
-          ingest(await getRecentSamples(session, MAX_SAMPLES_IN_MEMORY, controller.signal));
-        } else {
-// Reconcile pages during outages (limit to 3,000 samples per cycle).
-          for (let p = 0; p < 6 && !cancelled; p += 1) {
-            const page = await getSamples(streamId, latestSeq.current, 500, controller.signal);
-            const items = page.samples.map(normalizeFrame).filter((s): s is TelemetrySample => s !== null);
+          if (!historyLoaded) {
+            const items = await getRecentSamples(session, MAX_SAMPLES_IN_MEMORY, controller.signal);
             ingest(items);
-            if (!page.has_more || items.length === 0) break;
+            reconciledSeq.current = items.at(-1)?.sequence ?? session.max_sequence;
+            historyLoaded = true;
+          } else {
+// Reconcile from the last REST-confirmed sequence so lost WebSocket packets are recovered.
+            for (let p = 0; p < 6 && !cancelled; p += 1) {
+              const page = await getSamples(streamId, reconciledSeq.current, 500, controller.signal);
+              const items = page.samples.map(normalizeFrame).filter((s): s is TelemetrySample => s !== null);
+              ingest(items);
+              if (items.length === 0) break;
+              reconciledSeq.current = page.next_after ?? items.at(-1)!.sequence;
+              if (!page.has_more) break;
+            }
           }
+        } catch (exc) {
+          if (!cancelled) setError(exc instanceof Error ? exc.message : 'Falha ao recuperar telemetria.');
         }
-      } catch (exc) {
-        if (!cancelled) setError(exc instanceof Error ? exc.message : 'Falha ao recuperar telemetria.');
-      }
+      })().finally(() => { catchUpInFlight = null; });
+      return catchUpInFlight;
     };
     const connect = () => {
       if (cancelled) return;
@@ -96,11 +113,17 @@ export function useSessionStream(session: DrivingSession | null, demo: boolean):
     };
     void catchUp().finally(() => { if (!cancelled) connect(); });
     const interval = window.setInterval(() => { void catchUp(); }, 12_000);
+    const staleInterval = window.setInterval(() => {
+      if (!cancelled && historyLoaded && lastDataAt.value > 0 && Date.now() - lastDataAt.value > 7_000) {
+        setError('Conexão aberta, mas nenhuma amostra nova chegou nos últimos segundos.');
+      }
+    }, 5_000);
     return () => {
       cancelled = true;
       controller.abort();
       window.clearInterval(interval);
-      if (reconnectTimer !== undefined) clearTimeout(reconnectTimer);
+      window.clearInterval(staleInterval);
+      if (reconnectTimer !== undefined) window.clearTimeout(reconnectTimer);
       if (socket) {
         socket.onclose = null;
         socket.close();

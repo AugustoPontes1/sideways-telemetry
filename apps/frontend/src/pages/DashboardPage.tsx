@@ -5,7 +5,7 @@ import { useApp } from '../context/AppContext';
 import { Panel } from '../components/Panel';
 import { PageTitle } from '../components/PageTitle';
 import { EmptyState } from '../components/EmptyState';
-import { DriverControls, LiveHud } from '../components/LiveHud';
+import { LiveDriverControls, LiveHud } from '../components/LiveHud';
 import { TimeSeriesChart } from '../modules/telemetry/TelemetryCharts';
 import { demoAnalysis } from '../lib/demo';
 import { getAnalysis } from '../lib/api';
@@ -35,7 +35,7 @@ export function DashboardPage() {
           <TimeSeriesChart samples={samples} kind="inputs" selectedSequence={cursorSample.sequence} onSelect={setCursorSequence} height={292}/>
         </Panel>
         <Panel title="Controles do piloto" subtitle="Estado dos pedais no instante selecionado">
-          <div className="controls-panel"><DriverControls sample={cursorSample} /></div>
+          <div className="controls-panel"><LiveDriverControls /></div>
           <div className="divider" />
           <div className="mini-stats">
             <div><span>Volta</span><strong>{cursorSample.completed_laps ?? '—'}</strong></div>

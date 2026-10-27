@@ -6,10 +6,13 @@ import { Panel } from '../components/Panel';
 import { PageTitle } from '../components/PageTitle';
 import { CartesianPlot } from '../modules/cartesian-2d/CartesianPlot';
 import { useReferenceTrajectory } from '../modules/cartesian-2d/useReferenceTrajectory';
+import { useLiveInterpolatedSample } from '../modules/telemetry/useLiveInterpolatedSample';
 import { formatNumber } from '../lib/telemetry';
 
 export function CartesianPage() {
-  const { samples, cursorSample, setCursorSequence, sessions, activeSession, demo } = useApp();
+  const { samples, cursorSample, isFollowing, setCursorSequence, sessions, activeSession, demo } = useApp();
+  const liveSample = useLiveInterpolatedSample(samples, isFollowing && !demo, 60);
+  const displaySample = liveSample || cursorSample;
   const [showRef, setShowRef] = useState(true);
   const [refId, setRefId] = useState('');
   const [showVelocity, setShowVelocity] = useState(true);
@@ -20,7 +23,7 @@ export function CartesianPage() {
   return <>
     <PageTitle eyebrow="MÓDULOS / ÁLGEBRA APLICADA" title="Plano cartesiano 2D"
       subtitle="Trajetória em X/Z, vetor velocidade e comparação geométrica com outra captura da mesma pista."/>
-    {samples.length && cursorSample ? <>
+    {samples.length && displaySample ? <>
       <Panel title="Trajetória da sessão" subtitle="Eixos globais X/Z · escala 1:1 · clique na linha para selecionar uma amostra"
         action={<div className="toolbar">
           <label className="switch-label"><input type="checkbox" checked={showVelocity} onChange={(e) => setShowVelocity(e.target.checked)} /> Vetor velocidade</label>
@@ -31,16 +34,16 @@ export function CartesianPage() {
             {!references.length && <option value="">Nenhuma sessão na mesma pista</option>}
             {references.map((s) => <option key={s.stream_id} value={s.stream_id}>{s.car} · {new Date(s.last_sample_at).toLocaleDateString('pt-BR')} · {s.stream_id.slice(0,8)}</option>)}
           </select></div>}
-        <CartesianPlot samples={samples} reference={showRef ? result.positions : []} cursorSequence={cursorSample.sequence}
-          onSelect={setCursorSequence} showVelocity={showVelocity} />
+        <CartesianPlot samples={samples} reference={showRef ? result.positions : []} cursorSequence={displaySample.sequence}
+          selectedSample={displaySample} onSelect={setCursorSequence} showVelocity={showVelocity} />
       </Panel>
       <div className="content-grid split-equal">
-        <Panel title="Coordenadas do carro" subtitle={`Amostra #${cursorSample.sequence}`}>
+        <Panel title="Coordenadas do carro" subtitle={`Amostra #${displaySample.sequence}`}>
           <div className="data-list">
-            <div><span>Posição X</span><strong>{formatNumber(cursorSample.position_world_m[0],2)} m</strong></div>
-            <div><span>Posição Z</span><strong>{formatNumber(cursorSample.position_world_m[2],2)} m</strong></div>
-            <div><span>Velocidade X</span><strong>{formatNumber(cursorSample.velocity_world_mps[0],2)} m/s</strong></div>
-            <div><span>Velocidade Z</span><strong>{formatNumber(cursorSample.velocity_world_mps[2],2)} m/s</strong></div>
+            <div><span>Posição X</span><strong>{formatNumber(displaySample.position_world_m[0],2)} m</strong></div>
+            <div><span>Posição Z</span><strong>{formatNumber(displaySample.position_world_m[2],2)} m</strong></div>
+            <div><span>Velocidade X</span><strong>{formatNumber(displaySample.velocity_world_mps[0],2)} m/s</strong></div>
+            <div><span>Velocidade Z</span><strong>{formatNumber(displaySample.velocity_world_mps[2],2)} m/s</strong></div>
           </div>
         </Panel>
         <Panel title="Comparação de trajetória" subtitle="Distância geométrica até a polilinha de referência">

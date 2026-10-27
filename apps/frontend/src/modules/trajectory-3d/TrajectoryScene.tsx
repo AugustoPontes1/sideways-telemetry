@@ -23,11 +23,11 @@ export function TrajectoryScene({ samples, selected, reference }: {
   const carX = selected.position_world_m[0] - origin[0];
   const carZ = selected.position_world_m[2] - origin[2];
   return <div className="three-wrapper" role="img" aria-label="Cena 3D interativa do carro e sua trajetória">
-    <Canvas shadows dpr={[1, 1.8]} gl={{ antialias: true }}>
+    <Canvas shadows dpr={[1, 1.5]} gl={{ antialias: true, powerPreference: 'high-performance' }}>
       <color attach="background" args={['#0e1826']}/>
       <fog attach="fog" args={['#0e1826', 90, 320]}/>
       <ambientLight intensity={1.1}/>
-      <directionalLight position={[12, 30, 9]} intensity={2.3} castShadow shadow-mapSize={[1024,1024]}/>
+      <directionalLight position={[12, 30, 9]} intensity={2.3} castShadow shadow-mapSize={[512,512]}/>
       <PerspectiveCamera makeDefault position={[carX + 24, 26, carZ + 28]} fov={48} near={.1} far={2000}/>
       <OrbitControls makeDefault target={[carX, 0, carZ]} enableDamping dampingFactor={.09} maxPolarAngle={Math.PI / 2.05} minDistance={8} maxDistance={220}/>
       <Grid infiniteGrid cellSize={5} sectionSize={25} sectionColor="#36536a" cellColor="#23374c" fadeDistance={170} position={[0,-.25,0]}/>

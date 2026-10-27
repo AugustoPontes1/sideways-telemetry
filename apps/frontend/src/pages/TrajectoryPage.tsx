@@ -7,10 +7,13 @@ import { EmptyState } from '../components/EmptyState';
 import { useReferenceTrajectory } from '../modules/cartesian-2d/useReferenceTrajectory';
 import { TrajectoryScene } from '../modules/trajectory-3d/TrajectoryScene';
 import { usePlayback } from '../modules/trajectory-3d/usePlayback';
+import { useLiveInterpolatedSample } from '../modules/telemetry/useLiveInterpolatedSample';
 import { formatNumber, radiansToDegrees } from '../lib/telemetry';
 
 export function TrajectoryPage() {
-  const { samples, cursorSample, sessions, activeSession, demo, setCursorSequence, resumeLive } = useApp();
+  const { samples, cursorSample, sessions, activeSession, demo, isFollowing, setCursorSequence, resumeLive } = useApp();
+  const liveSample = useLiveInterpolatedSample(samples, isFollowing && !demo, 60);
+  const displaySample = liveSample || cursorSample;
   const [refId, setRefId] = useState('');
   const [showRef, setShowRef] = useState(true);
   const references = useMemo(() => sessions.filter((s) => s.stream_id !== activeSession?.stream_id && s.track === activeSession?.track), [sessions, activeSession?.stream_id, activeSession?.track]);
@@ -21,10 +24,10 @@ export function TrajectoryPage() {
   return <>
     <PageTitle eyebrow="MÓDULOS / REPLAY" title="Trajetória em 3D"
       subtitle="Reviva o movimento em três dimensões, observe a orientação do carro e compare com um traçado de referência."/>
-    {cursorSample && samples.length ? <>
+    {displaySample && samples.length ? <>
       <Panel title="Visualizador do carro" subtitle="Modelo didático · coordenadas globais X/Y/Z · direção a validar"
         action={<span className="view-label"><Camera size={16}/> Câmera livre</span>}>
-        <TrajectoryScene samples={samples} selected={cursorSample} reference={showRef ? positions : []}/>
+        <TrajectoryScene samples={samples} selected={displaySample} reference={showRef ? positions : []}/>
         <div className="playback-toolbar">
           <button className="button button-primary" onClick={() => playback.setPlaying(!playback.playing)}>
             {playback.playing ? <Pause size={16}/> : <Play size={16}/>} {playback.playing ? 'Pausar' : 'Reproduzir'}
@@ -43,12 +46,12 @@ export function TrajectoryPage() {
         {error && <p className="inline-error">{error}</p>}
       </Panel>
       <div className="content-grid split-equal">
-        <Panel title="Estado atual do veículo" subtitle={`Amostra #${cursorSample.sequence}`}>
+        <Panel title="Estado atual do veículo" subtitle={`Amostra #${displaySample.sequence}`}>
           <div className="data-list">
-            <div><span>X / Y / Z</span><strong>{cursorSample.position_world_m.map((n) => formatNumber(n,1)).join(' / ')} m</strong></div>
-            <div><span>Heading bruto</span><strong>{formatNumber(radiansToDegrees(cursorSample.heading_rad),1)}°</strong></div>
-            <div><span>RPM</span><strong>{formatNumber(cursorSample.rpm,0)}</strong></div>
-            <div><span>Velocidade</span><strong>{formatNumber(cursorSample.speed_kmh)} km/h</strong></div>
+            <div><span>X / Y / Z</span><strong>{displaySample.position_world_m.map((n) => formatNumber(n,1)).join(' / ')} m</strong></div>
+            <div><span>Heading bruto</span><strong>{formatNumber(radiansToDegrees(displaySample.heading_rad),1)}°</strong></div>
+            <div><span>RPM</span><strong>{formatNumber(displaySample.rpm,0)}</strong></div>
+            <div><span>Velocidade</span><strong>{formatNumber(displaySample.speed_kmh)} km/h</strong></div>
           </div>
         </Panel>
         <Panel title="Sobre a linha tracejada" subtitle="Interpretação física e limitação do modelo">
