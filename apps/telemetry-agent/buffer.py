@@ -76,9 +76,20 @@ class PersistentBuffer:
     def take(self, limit: int = 20) -> list[BufferedItem]:
         if not 1 <= limit <= 500:
             raise ValueError("limit needs to be between 1 and 500")
-        rows = self.db.execute(
-            "SELECT id, content FROM pending ORDER BY id LIMIT ?", (limit,)
-        ).fetchall()
+        if self._count <= limit:
+            rows = self.db.execute(
+                "SELECT id, content FROM pending ORDER BY id LIMIT ?", (limit,)
+            ).fetchall()
+        else:
+            older_count = limit // 2
+            recent_count = limit - older_count
+            older = self.db.execute(
+                "SELECT id, content FROM pending ORDER BY id LIMIT ?", (older_count,)
+            ).fetchall()
+            recent = self.db.execute(
+                "SELECT id, content FROM pending ORDER BY id DESC LIMIT ?", (recent_count,)
+            ).fetchall()
+            rows = older + recent
         return [BufferedItem(id=row[0], payload=json.loads(row[1])) for row in rows]
     
     def acknowledge(self, ids: Iterable[int]) -> int:

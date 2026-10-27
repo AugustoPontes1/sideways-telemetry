@@ -87,6 +87,7 @@ def main() -> None:
         level=logging.DEBUG if args.debug else logging.INFO,
         format="%(asctime)s %(levelname)-7s %(name)s: %(message)s",
     )
+    logging.getLogger("websockets.client").setLevel(logging.INFO)
     if not args.capture_only and args.allow_insecure_dev:
         LOG.warning("Developer mode allows ws:// only for loopback")
     try:

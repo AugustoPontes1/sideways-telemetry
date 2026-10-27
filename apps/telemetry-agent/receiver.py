@@ -66,7 +66,7 @@ class TelemetryReceiver:
                         else:
                             self.duplicates += 1
                         break
-                    except BufferError:
+                    except BufferFullError:
                         LOG.error("Full spool: waiting free space. without deleting the saved samples")
                         self.on_space.clear()
                         if self.buffer.pending < self.buffer.max_events:

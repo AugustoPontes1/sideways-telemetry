@@ -173,4 +173,4 @@ class WebSocketTransport:
                 LOG.warning("Unavailable transmission (%s: %s) new attempts in %.0f s",
                             type(error).__name__, error, backoff)
                 await asyncio.sleep(backoff)
-                backoff = min(30.0, backoff, * 2)
+                backoff = min(30.0, backoff * 2)
