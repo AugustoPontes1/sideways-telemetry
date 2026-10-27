@@ -36,7 +36,7 @@ class TcpPublisher:
         self._socket.sendall(raw)
 
     def __exit__(self, exc_type, exc, tb) -> None:
-        if self._socket is None:
+        if self._socket is not None:
             self._socket.close()
             self._socket = None
 
@@ -52,7 +52,7 @@ def run(host: str, port: int, hz: int) -> None:
                 reader = TelemetryReader(memory)
                 LOG.info("Game detected: %s / %s", reader.car, reader.track)
                 with TcpPublisher(host, port) as publisher:
-                    LOG.info("Transmitted for %s:%d to %d Hz", host, port, hz)
+                    LOG.info("Stream %s transmitted for %s:%d to %d Hz", stream_id, host, port, hz)
                     next_tick = time.perf_counter()
                     while True:
                         frame = reader.read()
