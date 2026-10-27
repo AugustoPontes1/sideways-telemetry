@@ -144,13 +144,13 @@ On a typical WSL2 configuration, Windows-to-WSL localhost forwarding works. If i
 ### 4 — Run the frontend
 
 ```bash
-cd drift-telemetry-lab/frontend
+cd drift-telemetry-lab/apps/frontend
 cp .env.example .env
 npm install
 npm run dev
 ```
 
-Open **http://127.0.0.1:5173**. The frontend includes a clearly marked **Demo Mode** with synthetic samples. For live data, sign in through `http://127.0.0.1:5173/admin/login/` using a Django staff account, turn off Demo Mode, and select a session.
+Open **http://127.0.0.1:5173**. The frontend starts in live mode. Sign in through `http://127.0.0.1:5173/admin/login/` using a Django staff account and select a session; enable Demo Mode only for synthetic samples.
 
 The Vite dev proxy routes `/api/`, `/admin/`, `/ws/`, `/static/`, and `/healthz/` to the backend.
 
