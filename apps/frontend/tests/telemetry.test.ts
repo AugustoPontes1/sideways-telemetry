@@ -6,6 +6,10 @@ describe('Contrato de telemetria REST + WS', () => {
   it('normaliza um sample REST', () => {
     expect(normalizeFrame(demoSamples[0])).toMatchObject({ sequence: 0 });
   });
+  it('mantém as cinco zonas de dano no contrato normalizado', () => {
+    const frame = normalizeFrame({ ...demoSamples[0], car_damage: [0.1, 0.2, 0.3, 0.4, 0.5] });
+    expect(frame?.car_damage).toEqual([0.1, 0.2, 0.3, 0.4, 0.5]);
+  });
   it('normaliza um sample WS sem sampled_at e speed_mps', () => {
     const { sampled_at: _sampled, speed_mps: _speed, ...ws } = demoSamples[0];
     const frame = normalizeFrame({ ...ws, timestamp_unix_ns: Date.parse(demoSamples[0].sampled_at) * 1e6 });

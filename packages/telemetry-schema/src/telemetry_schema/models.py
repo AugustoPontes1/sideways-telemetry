@@ -4,10 +4,27 @@ Keep this strictly separate from the ORM and from physical interpretation.
 Only **documented original fields** belong to v1. Breaking changes => v2.
 """
 from __future__ import annotations
-from typing import Literal, TypedDict
+from typing import Literal, NotRequired, TypedDict
 
 Vector3 = tuple[float, float, float]
 Vector4 = tuple[float, float, float, float]
+Vector5 = tuple[float, float, float, float, float]
+
+class TrackMap(TypedDict):
+    source: str
+    points: list[Vector3]
+    image_url: NotRequired[str]
+    map_config: NotRequired[dict[str, float]]
+
+class CarVisual(TypedDict):
+    id: str
+    display_name: str
+    brand: str
+    asset_key: str
+    source: str
+    ui_metadata: bool
+    model_format: str
+    skin_id: NotRequired[str]
 
 class TelemetryFrame(TypedDict):
     schema_version: Literal[1]
@@ -35,6 +52,9 @@ class TelemetryFrame(TypedDict):
     acceleration_g: Vector3
     angular_velocity_local_rad_s: Vector3
     wheel_slip_raw: Vector4
+    car_damage: NotRequired[Vector5]
+    track_map: NotRequired[TrackMap]
+    car_visual: NotRequired[CarVisual]
 
 class SampleEnvelope(TypedDict):
     type: Literal["telemetry"]

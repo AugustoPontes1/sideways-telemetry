@@ -1,6 +1,6 @@
 """Paginated API for feeding 2D plots and 3D replays."""
 from django.shortcuts import get_object_or_404
-from rest_framework.permissions import IsAdminUser
+from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -32,3 +32,7 @@ class SessionSamplesView(APIView):
             "has_more": has_more,
             "next_after": page[-1].sequence if page else None,
         })
+
+
+class PublicSessionSamplesView(SessionSamplesView):
+    permission_classes = [AllowAny]

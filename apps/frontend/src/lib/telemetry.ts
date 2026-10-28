@@ -1,9 +1,16 @@
-import type { TelemetrySample, Vec3 } from './types';
+import type { DamageZones, TelemetrySample, Vec3 } from './types';
 
 export const MAX_SAMPLES_IN_MEMORY = 3000;
 
 export function isVec3(v: unknown): v is Vec3 {
   return Array.isArray(v) && v.length === 3 && v.every((x) => typeof x === 'number' && Number.isFinite(x));
+}
+
+function damageZones(value: unknown): DamageZones {
+  if (Array.isArray(value) && value.length === 5 && value.every((x) => typeof x === 'number' && Number.isFinite(x))) {
+    return value as DamageZones;
+  }
+  return [0, 0, 0, 0, 0];
 }
 
 /** Ignore malformed messages without crashing the UI; the server already validates the source. */
@@ -37,6 +44,7 @@ export function normalizeFrame(input: unknown): TelemetrySample | null {
     roll_rad: typeof v.roll_rad === 'number' ? v.roll_rad : undefined,
     position_world_m: v.position_world_m,
     velocity_world_mps: v.velocity_world_mps,
+    car_damage: damageZones(v.car_damage),
     completed_laps: typeof v.completed_laps === 'number' ? v.completed_laps : undefined,
   };
 }

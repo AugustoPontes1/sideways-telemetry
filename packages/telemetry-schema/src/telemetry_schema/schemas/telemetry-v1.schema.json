@@ -137,6 +137,97 @@
           },
           "minItems": 4,
           "maxItems": 4
+        },
+        "car_damage": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1000000000
+          },
+          "minItems": 5,
+          "maxItems": 5
+        },
+        "track_map": {
+          "type": "object",
+          "properties": {
+            "source": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "points": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "number",
+                  "minimum": -1000000,
+                  "maximum": 1000000
+                },
+                "minItems": 3,
+                "maxItems": 3
+              },
+              "minItems": 0,
+              "maxItems": 1200
+            },
+            "image_url": {
+              "type": "string",
+              "maxLength": 512,
+              "pattern": "^/track-maps/"
+            },
+            "map_config": {
+              "type": "object",
+              "properties": {
+                "width": { "type": "number", "exclusiveMinimum": 0 },
+                "height": { "type": "number", "exclusiveMinimum": 0 },
+                "offset_x": { "type": "number" },
+                "offset_z": { "type": "number" },
+                "scale_factor": { "type": "number" }
+              },
+              "required": ["width", "height", "offset_x", "offset_z", "scale_factor"],
+              "additionalProperties": false
+            }
+          },
+          "required": ["source", "points"],
+          "additionalProperties": false
+        },
+        "car_visual": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "maxLength": 160
+            },
+            "display_name": {
+              "type": "string",
+              "maxLength": 160
+            },
+            "brand": {
+              "type": "string",
+              "maxLength": 80
+            },
+            "asset_key": {
+              "type": "string",
+              "maxLength": 160
+            },
+            "source": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "ui_metadata": {
+              "type": "boolean"
+            },
+            "model_format": {
+              "type": "string",
+              "maxLength": 16
+            },
+            "skin_id": {
+              "type": "string",
+              "maxLength": 160
+            }
+          },
+          "required": ["id", "display_name", "brand", "asset_key", "source", "ui_metadata", "model_format"],
+          "additionalProperties": false
         }
       },
       "required": [

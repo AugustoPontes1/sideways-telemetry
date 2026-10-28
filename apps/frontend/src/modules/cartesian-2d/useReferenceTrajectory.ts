@@ -16,7 +16,8 @@ const demoPositions = demoSamples.map((s, i): Vec3 => {
 });
 
 export function useReferenceTrajectory(
-  current: DrivingSession | null, reference: DrivingSession | null, demo: boolean, enabled: boolean,
+  current: DrivingSession | null, reference: DrivingSession | null, demo: boolean,
+  enabled: boolean, publicMode: boolean,
 ): ReferenceState {
   const [state, setState] = useState<ReferenceState>({ positions: [], metrics: null, error: null, loading: false });
   const currentId = current?.stream_id || '';
@@ -50,13 +51,16 @@ export function useReferenceTrajectory(
     let valid = true;
     const controller = new AbortController();
     setState({ positions: [], metrics: null, error: null, loading: true });
-    Promise.all([compareSessions(currentId, referenceId), getRecentSamples(reference, 2000, controller.signal)])
+    Promise.all([
+      compareSessions(currentId, referenceId, publicMode),
+      getRecentSamples(reference, 2000, controller.signal, publicMode),
+    ])
       .then(([metrics, samples]) => {
         if (valid) setState({ positions: samples.map((s) => s.position_world_m), metrics, error: null, loading: false });
       }).catch((exc: unknown) => {
         if (valid) setState({ positions: [], metrics: null, error: exc instanceof Error ? exc.message : 'Falha ao obter referência.', loading: false });
       });
     return () => { valid = false; controller.abort(); };
-  }, [currentId, referenceId, demo, enabled]);
+  }, [currentId, referenceId, demo, enabled, publicMode]);
   return state;
 }

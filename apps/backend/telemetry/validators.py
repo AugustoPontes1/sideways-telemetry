@@ -11,6 +11,8 @@ from typing import Any, Mapping
 
 MAX_BATCH_BYTES = 1_048_576
 MAX_SAMPLES = 100
+MAX_TRACK_MAP_POINTS = 1200
+MAX_CAR_VISUAL_TEXT = 160
 MAX_TIMESTAMP_NS = 4_102_444_800_000_000_000  # 2100-01-01 UTC
 MIN_TIMESTAMP_NS = 946_684_800_000_000_000  # 2000-01-01 UTC
 
@@ -50,6 +52,66 @@ def checked_vector(data: Mapping, key: str, size: int) -> list[float]:
             raise InvalidBatch(f"{key}: componente inválido")
         result.append(float(n))
     return result
+
+
+def checked_track_map(data: Mapping) -> dict[str, Any] | None:
+    value = data.get("track_map")
+    if value is None:
+        return None
+    if not isinstance(value, dict):
+        raise InvalidBatch("track_map: esperado objeto")
+    source = checked_string(value, "source", 64)
+    image_url = value.get("image_url")
+    if image_url is not None:
+        image_url = checked_string(value, "image_url", 512)
+        if not image_url.startswith("/track-maps/"):
+            raise InvalidBatch("track_map.image_url: asset local esperado")
+    points = value.get("points")
+    if not isinstance(points, list) or len(points) > MAX_TRACK_MAP_POINTS:
+        raise InvalidBatch(f"track_map.points: esperado de 0 até {MAX_TRACK_MAP_POINTS} pontos")
+    if len(points) < 2 and image_url is None:
+        raise InvalidBatch("track_map: esperado pelo menos 2 pontos ou image_url")
+    result = {"source": source, "points": [checked_vector({"point": point}, "point", 3) for point in points]}
+    if image_url is not None:
+        result["image_url"] = image_url
+    map_config = value.get("map_config")
+    if map_config is not None:
+        if not isinstance(map_config, dict):
+            raise InvalidBatch("track_map.map_config: esperado objeto")
+        config = {}
+        for name in ("width", "height", "offset_x", "offset_z", "scale_factor"):
+            raw = map_config.get(name)
+            if type(raw) not in (int, float) or not math.isfinite(raw):
+                raise InvalidBatch(f"track_map.map_config.{name}: esperado número finito")
+            config[name] = float(raw)
+        if config["width"] <= 0 or config["height"] <= 0:
+            raise InvalidBatch("track_map.map_config: largura e altura devem ser positivas")
+        result["map_config"] = config
+    return result
+
+
+def checked_car_visual(data: Mapping) -> dict[str, Any] | None:
+    value = data.get("car_visual")
+    if value is None:
+        return None
+    if not isinstance(value, dict):
+        raise InvalidBatch("car_visual: esperado objeto")
+    ui_metadata = value.get("ui_metadata")
+    if type(ui_metadata) is not bool:
+        raise InvalidBatch("car_visual.ui_metadata: esperado booleano")
+    skin_id = value.get("skin_id", "")
+    if not isinstance(skin_id, str) or len(skin_id) > MAX_CAR_VISUAL_TEXT or any(ord(ch) < 32 for ch in skin_id):
+        raise InvalidBatch("car_visual.skin_id: texto inválido")
+    return {
+        "id": checked_string(value, "id", MAX_CAR_VISUAL_TEXT),
+        "display_name": checked_string(value, "display_name", MAX_CAR_VISUAL_TEXT),
+        "brand": checked_string(value, "brand", 80),
+        "asset_key": checked_string(value, "asset_key", MAX_CAR_VISUAL_TEXT),
+        "source": checked_string(value, "source", 64),
+        "ui_metadata": ui_metadata,
+        "model_format": checked_string(value, "model_format", 16),
+        "skin_id": skin_id,
+    }
 
 
 def checked_uuid(value: Any, name: str) -> uuid.UUID:
@@ -131,7 +193,16 @@ def validate_sample(item: Any) -> ValidatedSample:
         "acceleration_g": checked_vector(source, "acceleration_g", 3),
         "angular_velocity_local_rad_s": checked_vector(source, "angular_velocity_local_rad_s", 3),
         "wheel_slip_raw": checked_vector(source, "wheel_slip_raw", 4),
+        "car_damage": checked_vector(source, "car_damage", 5) if "car_damage" in source else [0.0] * 5,
     }
+    track_map = checked_track_map(source)
+    if track_map is not None:
+        frame["track_map"] = track_map
+    car_visual = checked_car_visual(source)
+    if car_visual is not None:
+        frame["car_visual"] = car_visual
+    if any(value < 0 for value in frame["car_damage"]):
+        raise InvalidBatch("car_damage: valor negativo")
     speed_mps = checked_float(source, "speed_mps", -600 / 3.6, 600 / 3.6)
     if not math.isclose(speed_mps, frame["speed_kmh"] / 3.6, rel_tol=1e-5, abs_tol=1e-3):
         raise InvalidBatch("speed_mps não corresponde à velocidade em km/h")

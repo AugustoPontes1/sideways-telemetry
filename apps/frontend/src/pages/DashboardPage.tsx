@@ -11,19 +11,20 @@ import { demoAnalysis } from '../lib/demo';
 import { getAnalysis } from '../lib/api';
 import { formatNumber } from '../lib/telemetry';
 import type { SessionAnalysis } from '../lib/types';
+import { VehicleDamage } from '../components/VehicleDamage';
 
 export function DashboardPage() {
-  const { activeSession, samples, cursorSample, setCursorSequence, demo, liveStatus, streamError } = useApp();
+  const { activeSession, samples, cursorSample, setCursorSequence, demo, liveStatus, streamError, publicMode, routePath } = useApp();
   const [analysis, setAnalysis] = useState<SessionAnalysis | null>(demo ? demoAnalysis : null);
   useEffect(() => {
     if (demo) { setAnalysis(demoAnalysis); return; }
     if (!activeSession) { setAnalysis(null); return; }
     let valid = true;
-    const load = () => { getAnalysis(activeSession.stream_id).then((v) => { if (valid) setAnalysis(v); }).catch(() => { if (valid) setAnalysis(null); }); };
+    const load = () => { getAnalysis(activeSession.stream_id, publicMode).then((v) => { if (valid) setAnalysis(v); }).catch(() => { if (valid) setAnalysis(null); }); };
     load();
     const t = setInterval(load, 20_000);
     return () => { valid = false; clearInterval(t); };
-  }, [demo, activeSession?.stream_id]);
+  }, [demo, activeSession?.stream_id, publicMode]);
   return <>
     <PageTitle eyebrow="VISÃO GERAL / DRIFT TELEMETRY LAB" title="Centro de telemetria"
       subtitle="Acompanhe as sessões, investigue sua pilotagem e transforme cada curva em um exercício matemático."
@@ -46,6 +47,9 @@ export function DashboardPage() {
         </Panel>
       </div>
       <div className="content-grid split-equal">
+        <Panel title="Estado e danos do veículo" subtitle={`${activeSession.car_visual?.display_name || activeSession.car} · zonas expostas pelo Shared Memory`}>
+          <VehicleDamage sample={cursorSample}/>
+        </Panel>
         <Panel title="Eventos para investigar" subtitle="Indícios do backend — não são diagnósticos de erro">
           <div className="events-list">
             {analysis?.events.length ? analysis.events.slice(0, 5).map((event, idx) => <button key={`${event.sequence}-${idx}`} className="event-row" onClick={() => setCursorSequence(event.sequence)}>
@@ -55,10 +59,10 @@ export function DashboardPage() {
         </Panel>
         <Panel title="Explorar a sessão" subtitle="Selecione um módulo para continuar">
           <div className="shortcut-grid">
-            <Link to="/cartesian" className="shortcut"><span className="shortcut-icon"><Route size={22}/></span><strong>Trajetória 2D</strong><small>Comparar linhas</small></Link>
-            <Link to="/trajectory" className="shortcut"><span className="shortcut-icon"><Boxes size={22}/></span><strong>Replay 3D</strong><small>Ver o movimento</small></Link>
-            <Link to="/telemetry" className="shortcut"><span className="shortcut-icon"><BarChart3 size={22}/></span><strong>Gráficos</strong><small>Examinar controles</small></Link>
-            <Link to="/math" className="shortcut"><span className="shortcut-icon"><BookOpen size={22}/></span><strong>Modo Estudo</strong><small>Resolver e conferir</small></Link>
+            <Link to={routePath('/cartesian')} className="shortcut"><span className="shortcut-icon"><Route size={22}/></span><strong>Trajetória 2D</strong><small>Comparar linhas</small></Link>
+            <Link to={routePath('/trajectory')} className="shortcut"><span className="shortcut-icon"><Boxes size={22}/></span><strong>Replay 3D</strong><small>Ver o movimento</small></Link>
+            <Link to={routePath('/telemetry')} className="shortcut"><span className="shortcut-icon"><BarChart3 size={22}/></span><strong>Gráficos</strong><small>Examinar controles</small></Link>
+            <Link to={routePath('/math')} className="shortcut"><span className="shortcut-icon"><BookOpen size={22}/></span><strong>Modo Estudo</strong><small>Resolver e conferir</small></Link>
           </div>
         </Panel>
       </div>

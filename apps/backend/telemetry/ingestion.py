@@ -76,6 +76,8 @@ def persist_batch(batch: ValidatedBatch) -> PersistResult:
                     "agent_id": batch.agent_id,
                     "car": first.frame["car"],
                     "track": first.frame["track"],
+                    "track_map": first.frame.get("track_map", {}),
+                    "car_visual": first.frame.get("car_visual", {}),
                     "session_type": first.frame["session_type"],
                     "first_sample_at": oldest_time,
                     "last_sample_at": newest_time,
@@ -120,12 +122,22 @@ def persist_batch(batch: ValidatedBatch) -> PersistResult:
                         "heading_rad": f["heading_rad"],
                         "position_world_m": f["position_world_m"],
                         "velocity_world_mps": f["velocity_world_mps"],
+                        "car_damage": f["car_damage"],
                     })
                 live_updates.append({
                     "type": "telemetry.samples",
                     "stream_id": str(stream_id),
                     "samples": live_samples,
                 })
+
+            map_frame = next((item.frame for item in sorted(group, key=lambda item: item.sequence)
+                              if item.frame.get("track_map") is not None), None)
+            if map_frame is not None:
+                session.track_map = map_frame["track_map"]
+            visual_frame = next((item.frame for item in sorted(group, key=lambda item: item.sequence)
+                                 if item.frame.get("car_visual") is not None), None)
+            if visual_frame is not None:
+                session.car_visual = visual_frame["car_visual"]
 
             session.first_sample_at = min(session.first_sample_at, oldest_time)
             session.last_sample_at = max(session.last_sample_at, newest_time)
@@ -138,7 +150,7 @@ def persist_batch(batch: ValidatedBatch) -> PersistResult:
             session.updated_at = timezone.now()
             session.save(update_fields=[
                 "first_sample_at", "last_sample_at", "sample_count", "max_sequence",
-                "car", "track", "session_type", "updated_at",
+                "car", "track", "track_map", "car_visual", "session_type", "updated_at",
             ])
 
     # Outside the transaction: all records have been committed by the database.

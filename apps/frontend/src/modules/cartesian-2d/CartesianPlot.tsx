@@ -2,11 +2,12 @@ import { useMemo } from 'react';
 import Plot from 'react-plotly.js';
 import type { Data, Layout } from 'plotly.js';
 import { downsample } from '../../lib/telemetry';
-import type { TelemetrySample, Vec3 } from '../../lib/types';
+import type { TelemetrySample, TrackMap, Vec3 } from '../../lib/types';
 
 interface CartesianPlotProps {
   samples: TelemetrySample[];
   reference: Vec3[];
+  trackMap?: TrackMap | null;
   cursorSequence: number | null;
   selectedSample?: TelemetrySample | null;
   onSelect: (seq: number) => void;
@@ -14,24 +15,33 @@ interface CartesianPlotProps {
   height?: number;
 }
 
-export function CartesianPlot({ samples, reference, cursorSequence, selectedSample, onSelect, showVelocity, height = 490 }: CartesianPlotProps) {
+export function CartesianPlot({ samples, reference, trackMap, cursorSequence, selectedSample, onSelect, showVelocity, height = 490 }: CartesianPlotProps) {
   const visible = useMemo(() => downsample(samples, 1100), [samples]);
+  const fullTrack = useMemo(() => trackMap && Array.isArray(trackMap.points) && trackMap.points.length >= 2
+    ? downsample(trackMap.points, 1200) : [], [trackMap]);
   const selected = selectedSample || samples.find((s) => s.sequence === cursorSequence) || samples.at(-1);
   const referenceVisible = useMemo(() => downsample(reference, 1100), [reference]);
   const trajectoryTrace = useMemo<Data>(() => ({
-      type: 'scattergl', mode: 'lines', name: 'Trajetória executada',
-      x: visible.map((s) => s.position_world_m[0]), y: visible.map((s) => s.position_world_m[2]),
+      type: 'scattergl', mode: 'lines', name: fullTrack.length ? 'Pista completa' : 'Trajetória executada',
+      x: (fullTrack.length ? fullTrack.map((point) => point[0]) : visible.map((s) => s.position_world_m[0])),
+      y: (fullTrack.length ? fullTrack.map((point) => point[2]) : visible.map((s) => s.position_world_m[2])),
       line: { color: '#12baa7', width: 3 },
+      hovertemplate: 'X: %{x:.2f} m<br>Z: %{y:.2f} m<extra>Pista</extra>',
+  }), [fullTrack, visible]);
+  const sessionTrace = useMemo<Data | null>(() => fullTrack.length ? ({
+      type: 'scattergl', mode: 'lines', name: 'Minha sessão',
+      x: visible.map((s) => s.position_world_m[0]), y: visible.map((s) => s.position_world_m[2]),
+      line: { color: '#f8ae62', width: 2, dash: 'dot' },
       customdata: visible.map((s) => s.sequence),
-      hovertemplate: 'X: %{x:.2f} m<br>Z: %{y:.2f} m<br>Seq #%{customdata}<extra>Carro</extra>',
-  }), [visible]);
+      hovertemplate: 'X: %{x:.2f} m<br>Z: %{y:.2f} m<br>Seq #%{customdata}<extra>Minha sessão</extra>',
+  }) : null, [fullTrack, visible]);
   const referenceTrace = useMemo<Data | null>(() => referenceVisible.length ? ({
       type: 'scattergl', mode: 'lines', name: 'Referência (não ideal)',
       x: referenceVisible.map((v) => v[0]), y: referenceVisible.map((v) => v[2]),
       line: { color: '#6ca4ff', width: 2.5, dash: 'dash' },
       hovertemplate: 'X: %{x:.2f} m<br>Z: %{y:.2f} m<extra>Referência</extra>',
   }) : null, [referenceVisible]);
-  const staticData = useMemo(() => referenceTrace ? [trajectoryTrace, referenceTrace] : [trajectoryTrace], [referenceTrace, trajectoryTrace]);
+  const staticData = useMemo(() => [trajectoryTrace, ...(sessionTrace ? [sessionTrace] : []), ...(referenceTrace ? [referenceTrace] : [])], [referenceTrace, sessionTrace, trajectoryTrace]);
   const data: Data[] = [...staticData];
   if (selected) {
     data.push({
@@ -70,7 +80,8 @@ export function CartesianPlot({ samples, reference, cursorSequence, selectedSamp
     config={{ responsive: true, displaylogo: false, scrollZoom: true }}
     onClick={(event) => {
       const selectedPoint = event.points?.[0];
-      if (selectedPoint?.curveNumber === 0 && typeof selectedPoint.pointNumber === 'number') {
+      const selectableCurve = fullTrack.length ? 1 : 0;
+      if (selectedPoint?.curveNumber === selectableCurve && typeof selectedPoint.pointNumber === 'number') {
         const found = visible[selectedPoint.pointNumber];
         if (found) onSelect(found.sequence);
       }

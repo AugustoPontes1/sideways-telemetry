@@ -1,6 +1,6 @@
 import type {
   AnswerCheck, DrivingSession, Exercise, ExerciseValue, LearningTopic,
-  SamplesPage, SessionAnalysis, TelemetrySample, TrajectoryComparison,
+  SamplesPage, SessionAnalysis, TelemetrySample, TrackMap, TrajectoryComparison,
 } from './types';
 
 export class ApiError extends Error {
@@ -50,25 +50,37 @@ function getCookie(name: string): string | null {
   return match ? decodeURIComponent(match.slice(name.length + 1)) : null;
 }
 
-export const getSessions = () => apiFetch<DrivingSession[]>('/api/sessions/');
-export const getAnalysis = (id: string) =>
-  apiFetch<SessionAnalysis>(`/api/sessions/${encodeURIComponent(id)}/analysis/`);
-export const getTopics = () => apiFetch<{ topics: LearningTopic[] }>('/api/learning/topics/');
+function apiRoot(publicMode: boolean): string {
+  return publicMode ? '/api/public' : '/api';
+}
 
-export const getSamples = (id: string, after = -1, limit = 500, signal?: AbortSignal) =>
+export const getSessions = (publicMode = false) =>
+  apiFetch<DrivingSession[]>(`${apiRoot(publicMode)}/sessions/`);
+export const getTrackMap = (id: string, publicMode = false) =>
+  apiFetch<{ stream_id: string; track: string; track_map: TrackMap | null }>(
+    `${apiRoot(publicMode)}/sessions/${encodeURIComponent(id)}/track-map/`,
+  );
+export const getAnalysis = (id: string, publicMode = false) =>
+  apiFetch<SessionAnalysis>(`${apiRoot(publicMode)}/sessions/${encodeURIComponent(id)}/analysis/`);
+export const getTopics = (publicMode = false) =>
+  apiFetch<{ topics: LearningTopic[] }>(`${apiRoot(publicMode)}/learning/topics/`);
+
+export const getSamples = (
+  id: string, after = -1, limit = 500, signal?: AbortSignal, publicMode = false,
+) =>
   apiFetch<SamplesPage>(
-    `/api/sessions/${encodeURIComponent(id)}/samples/?after=${after}&limit=${limit}`,
+    `${apiRoot(publicMode)}/sessions/${encodeURIComponent(id)}/samples/?after=${after}&limit=${limit}`,
     { signal },
   );
 
 export async function getRecentSamples(
-  session: DrivingSession, maxCount = 2000, signal?: AbortSignal,
+  session: DrivingSession, maxCount = 2000, signal?: AbortSignal, publicMode = false,
 ): Promise<TelemetrySample[]> {
 // The current endpoint only supports `after`; start near max_sequence to fetch the tail.
   let after = Math.max(-1, session.max_sequence - maxCount);
   const all: TelemetrySample[] = [];
   for (let pageNum = 0; pageNum < Math.ceil(maxCount / 500) + 2; pageNum += 1) {
-    const page = await getSamples(session.stream_id, after, Math.min(500, maxCount), signal);
+    const page = await getSamples(session.stream_id, after, Math.min(500, maxCount), signal, publicMode);
     all.push(...page.samples);
     if (!page.has_more || page.next_after === null || all.length >= maxCount) break;
     after = page.next_after;
@@ -76,26 +88,27 @@ export async function getRecentSamples(
   return all.slice(-maxCount);
 }
 
-export const compareSessions = (id: string, refId: string) =>
+export const compareSessions = (id: string, refId: string, publicMode = false) =>
   apiFetch<TrajectoryComparison>(
-    `/api/sessions/${encodeURIComponent(id)}/analysis/compare/?reference=${encodeURIComponent(refId)}`,
+    `${apiRoot(publicMode)}/sessions/${encodeURIComponent(id)}/analysis/compare/?reference=${encodeURIComponent(refId)}`,
   );
 
 export const getExercise = (
-  id: string, topic: string, a: number, b: number, reveal = false,
+  id: string, topic: string, a: number, b: number, reveal = false, publicMode = false,
 ) => apiFetch<Exercise>(
-  `/api/sessions/${encodeURIComponent(id)}/exercise/?topic=${encodeURIComponent(topic)}` +
+  `${apiRoot(publicMode)}/sessions/${encodeURIComponent(id)}/exercise/?topic=${encodeURIComponent(topic)}` +
   `&a=${a}&b=${b}${reveal ? '&reveal=1' : ''}`,
 );
 
 export const checkExercise = (
-  id: string, topic: string, a: number, b: number, answer: ExerciseValue,
-) => apiFetch<AnswerCheck>(`/api/sessions/${encodeURIComponent(id)}/exercise/check/`, {
+  id: string, topic: string, a: number, b: number, answer: ExerciseValue, publicMode = false,
+) => apiFetch<AnswerCheck>(`${apiRoot(publicMode)}/sessions/${encodeURIComponent(id)}/exercise/check/`, {
   method: 'POST',
   body: JSON.stringify({ topic, a, b, answer }),
 });
 
-export function liveSocketUrl(id: string): string {
+export function liveSocketUrl(id: string, publicMode = false): string {
   const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-  return `${proto}//${location.host}/ws/sessions/${encodeURIComponent(id)}/live/`;
+  const prefix = publicMode ? '/ws/public/sessions/' : '/ws/sessions/';
+  return `${proto}//${location.host}${prefix}${encodeURIComponent(id)}/live/`;
 }

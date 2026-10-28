@@ -11,7 +11,9 @@ interface StreamResult {
 }
 
 /** REST for history + WS for deltas + periodic reconciliation after packet loss. */
-export function useSessionStream(session: DrivingSession | null, demo: boolean): StreamResult {
+export function useSessionStream(
+  session: DrivingSession | null, demo: boolean, publicMode: boolean,
+): StreamResult {
   const [samples, setSamples] = useState<TelemetrySample[]>(demo ? demoSamples : []);
   const [status, setStatus] = useState<LiveStatus>(demo ? 'demo' : 'offline');
   const [error, setError] = useState<string | null>(null);
@@ -60,14 +62,14 @@ export function useSessionStream(session: DrivingSession | null, demo: boolean):
         try {
 // On initial reads, capture the most recent window of the session.
           if (!historyLoaded) {
-            const items = await getRecentSamples(session, MAX_SAMPLES_IN_MEMORY, controller.signal);
+            const items = await getRecentSamples(session, MAX_SAMPLES_IN_MEMORY, controller.signal, publicMode);
             ingest(items);
             reconciledSeq.current = items.at(-1)?.sequence ?? session.max_sequence;
             historyLoaded = true;
           } else {
 // Reconcile from the last REST-confirmed sequence so lost WebSocket packets are recovered.
             for (let p = 0; p < 6 && !cancelled; p += 1) {
-              const page = await getSamples(streamId, reconciledSeq.current, 500, controller.signal);
+              const page = await getSamples(streamId, reconciledSeq.current, 500, controller.signal, publicMode);
               const items = page.samples.map(normalizeFrame).filter((s): s is TelemetrySample => s !== null);
               ingest(items);
               if (items.length === 0) break;
@@ -83,7 +85,7 @@ export function useSessionStream(session: DrivingSession | null, demo: boolean):
     };
     const connect = () => {
       if (cancelled) return;
-      socket = new WebSocket(liveSocketUrl(streamId));
+      socket = new WebSocket(liveSocketUrl(streamId, publicMode));
       socket.onopen = () => {
         reconnects = 0;
         setStatus('connected');
@@ -103,7 +105,9 @@ export function useSessionStream(session: DrivingSession | null, demo: boolean):
         setStatus('reconnecting');
         if ([4403, 4404].includes(event.code)) {
           setStatus('offline');
-          setError('WebSocket não autorizado ou sessão indisponível. Faça login no Django.');
+          setError(publicMode
+            ? 'Sessão pública indisponível.'
+            : 'WebSocket não autorizado ou sessão indisponível. Faça login no Django.');
           return;
         }
         const delay = Math.min(10_000, 800 * Math.pow(2, Math.min(reconnects++, 4)));
@@ -131,7 +135,7 @@ export function useSessionStream(session: DrivingSession | null, demo: boolean):
     };
 // Reopen only when the session changes; metadata refreshes do not require closing the socket.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [streamId, demo]);
+  }, [streamId, demo, publicMode]);
 
   return { samples, status, error };
 }

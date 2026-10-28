@@ -15,6 +15,10 @@ class InvalidTelemetry(ValueError):
     """Message incompatible with the Windows bridge contract."""
 
 
+MAX_TRACK_MAP_POINTS = 1200
+MAX_CAR_VISUAL_TEXT = 160
+
+
 def _integer(data: Mapping, key: str, *, minimum: int = 0, maximum: int = 2**63 - 1) -> int:
     value = data.get(key)
     if type(value) is not int or not minimum <= value <= maximum:
@@ -51,6 +55,73 @@ def _text(data: Mapping, key: str, max_length: int = 160) -> str:
     if not isinstance(value, str) or len(value) > max_length:
         raise InvalidTelemetry(f"{key}: texto inválido")
     return value
+
+
+def _track_map(data: Mapping) -> dict | None:
+    value = data.get("track_map")
+    if value is None:
+        return None
+    if not isinstance(value, Mapping):
+        raise InvalidTelemetry("track_map: esperado objeto")
+    source = _text(value, "source", 64)
+    image_url = value.get("image_url")
+    if image_url is not None:
+        image_url = _text(value, "image_url", 512)
+        if not image_url.startswith("/track-maps/"):
+            raise InvalidTelemetry("track_map.image_url: asset local esperado")
+    points = value.get("points")
+    if not isinstance(points, list) or len(points) > MAX_TRACK_MAP_POINTS:
+        raise InvalidTelemetry(f"track_map.points: esperado de 0 até {MAX_TRACK_MAP_POINTS} pontos")
+    if len(points) < 2 and image_url is None:
+        raise InvalidTelemetry("track_map: esperado pelo menos 2 pontos ou image_url")
+    normalized_points = [_vector({"point": point}, "point", 3) for point in points]
+    result = {"source": source, "points": normalized_points}
+    if image_url is not None:
+        result["image_url"] = image_url
+    map_config = value.get("map_config")
+    if map_config is not None:
+        if not isinstance(map_config, Mapping):
+            raise InvalidTelemetry("track_map.map_config: esperado objeto")
+        config = {}
+        for name in ("width", "height", "offset_x", "offset_z", "scale_factor"):
+            raw = map_config.get(name)
+            if type(raw) not in (int, float) or not math.isfinite(raw):
+                raise InvalidTelemetry(f"track_map.map_config.{name}: esperado número finito")
+            config[name] = float(raw)
+        if config["width"] <= 0 or config["height"] <= 0:
+            raise InvalidTelemetry("track_map.map_config: largura e altura devem ser positivas")
+        result["map_config"] = config
+    return result
+
+
+def _car_visual(data: Mapping) -> dict | None:
+    value = data.get("car_visual")
+    if value is None:
+        return None
+    if not isinstance(value, Mapping):
+        raise InvalidTelemetry("car_visual: esperado objeto")
+    car_id = _text(value, "id", MAX_CAR_VISUAL_TEXT)
+    display_name = _text(value, "display_name", MAX_CAR_VISUAL_TEXT)
+    brand = _text(value, "brand", 80)
+    asset_key = _text(value, "asset_key", MAX_CAR_VISUAL_TEXT)
+    source = _text(value, "source", 64)
+    model_format = _text(value, "model_format", 16)
+    skin_id = value.get("skin_id", "")
+    if not isinstance(skin_id, str) or len(skin_id) > MAX_CAR_VISUAL_TEXT or any(ord(ch) < 32 for ch in skin_id):
+        raise InvalidTelemetry("car_visual.skin_id: texto inválido")
+    ui_metadata = value.get("ui_metadata")
+    if type(ui_metadata) is not bool:
+        raise InvalidTelemetry("car_visual.ui_metadata: esperado booleano")
+    return {
+        "id": car_id,
+        "display_name": display_name,
+        "brand": brand,
+        "asset_key": asset_key,
+        "source": source,
+        "ui_metadata": ui_metadata,
+        "model_format": model_format,
+        "skin_id": skin_id,
+    }
 
 
 class TelemetryNormalizer:
@@ -101,7 +172,16 @@ class TelemetryNormalizer:
             "acceleration_g": _vector(frame, "acceleration_g", 3),
             "angular_velocity_local_rad_s": _vector(frame, "angular_velocity_local_rad_s", 3),
             "wheel_slip_raw": _vector(frame, "wheel_slip_raw", 4),
+            "car_damage": _vector(frame, "car_damage", 5) if "car_damage" in frame else [0.0] * 5,
         }
+        track_map = _track_map(frame)
+        if track_map is not None:
+            normalized["track_map"] = track_map
+        car_visual = _car_visual(frame)
+        if car_visual is not None:
+            normalized["car_visual"] = car_visual
+        if any(value < 0 for value in normalized["car_damage"]):
+            raise InvalidTelemetry("car_damage: valor negativo")
         for name in ("throttle", "brake", "clutch"):
             normalized[name] = min(normalized[name], 1.0)
 

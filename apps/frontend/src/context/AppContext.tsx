@@ -1,8 +1,9 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { PropsWithChildren } from 'react';
-import { getSessions } from '../lib/api';
+import { useLocation } from 'react-router-dom';
+import { getSessions, getTrackMap } from '../lib/api';
 import { demoSession } from '../lib/demo';
-import type { DrivingSession } from '../lib/types';
+import type { DrivingSession, TrackMap } from '../lib/types';
 import { useSessionStream } from '../modules/telemetry/useSessionStream';
 import { nearestBySequence } from '../lib/telemetry';
 
@@ -11,6 +12,7 @@ interface AppState {
   setDemo: (value: boolean) => void;
   sessions: DrivingSession[];
   activeSession: DrivingSession | null;
+  trackMap: TrackMap | null;
   selectSession: (id: string) => void;
   error: string | null;
   loading: boolean;
@@ -23,17 +25,26 @@ interface AppState {
   isFollowing: boolean;
   setCursorSequence: (seq: number) => void;
   resumeLive: () => void;
+  publicMode: boolean;
+  routePath: (path: string) => string;
 }
 
 const Context = createContext<AppState | null>(null);
 
 export function AppProvider({ children }: PropsWithChildren) {
+  const location = useLocation();
+  const publicMode = location.pathname === '/visao-publica'
+    || location.pathname.startsWith('/visao-publica/');
+  const routePath = (path: string) => publicMode
+    ? path === '/' ? '/visao-publica' : `/visao-publica${path}`
+    : path;
   const [demo, setDemo] = useState(false);
   const [realSessions, setRealSessions] = useState<DrivingSession[]>([]);
   const [selected, setSelected] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  const [trackMap, setTrackMap] = useState<TrackMap | null>(null);
   const [cursorSequence, setCursor] = useState<number | null>(null);
   const [isFollowing, setFollowing] = useState(true);
   const selectionLocked = useRef(false);
@@ -42,7 +53,7 @@ export function AppProvider({ children }: PropsWithChildren) {
     if (demo) return;
     const controller = new AbortController();
     setLoading(true);
-    getSessions().then((data) => {
+    getSessions(publicMode).then((data) => {
       if (controller.signal.aborted) return;
       setRealSessions(data);
       setSelected((id) => selectionLocked.current && data.some((s) => s.stream_id === id)
@@ -52,17 +63,39 @@ export function AppProvider({ children }: PropsWithChildren) {
       if (!controller.signal.aborted) setError(e instanceof Error ? e.message : 'Falha ao buscar sessões.');
     }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
-  }, [demo, reloadKey]);
+  }, [demo, reloadKey, publicMode]);
 
   useEffect(() => {
     if (demo) return;
     const timer = window.setInterval(() => setReloadKey((value) => value + 1), 15_000);
     return () => window.clearInterval(timer);
-  }, [demo]);
+  }, [demo, publicMode]);
 
   const sessions = demo ? [demoSession] : realSessions;
   const activeSession = demo ? demoSession : sessions.find((s) => s.stream_id === selected) ?? null;
-  const { samples, status, error: streamError } = useSessionStream(activeSession, demo);
+  const { samples, status, error: streamError } = useSessionStream(activeSession, demo, publicMode);
+
+  useEffect(() => {
+    if (demo || !activeSession) {
+      setTrackMap(null);
+      return undefined;
+    }
+    let valid = true;
+    setTrackMap(null);
+    getTrackMap(activeSession.stream_id, publicMode).then((value) => {
+      if (valid) setTrackMap(
+        value.track_map && (
+          (Array.isArray(value.track_map.points) && value.track_map.points.length >= 2)
+          || Boolean(value.track_map.image_url)
+        )
+          ? value.track_map
+          : null,
+      );
+    }).catch(() => {
+      if (valid) setTrackMap(null);
+    });
+    return () => { valid = false; };
+  }, [activeSession?.stream_id, activeSession?.updated_at, demo, publicMode]);
 
   useEffect(() => { setCursor(null); setFollowing(true); }, [activeSession?.stream_id, demo]);
   const cursorSample = useMemo(
@@ -75,6 +108,7 @@ export function AppProvider({ children }: PropsWithChildren) {
     setDemo,
     sessions,
     activeSession,
+    trackMap,
     selectSession: (id) => {
       selectionLocked.current = true;
       setSelected(id);
@@ -92,6 +126,8 @@ export function AppProvider({ children }: PropsWithChildren) {
     isFollowing,
     setCursorSequence: (seq) => { setCursor(seq); setFollowing(false); },
     resumeLive: () => { setCursor(null); setFollowing(true); },
+    publicMode,
+    routePath,
   };
   return <Context.Provider value={state}>{children}</Context.Provider>;
 }

@@ -1,10 +1,36 @@
 export type Vec3 = [number, number, number];
+export type DamageZones = [number, number, number, number, number];
+
+export interface TrackMap {
+  source: string;
+  points: Vec3[];
+  image_url?: string;
+  map_config?: {
+    width: number;
+    height: number;
+    offset_x: number;
+    offset_z: number;
+    scale_factor: number;
+  };
+}
+
+export interface CarVisual {
+  id: string;
+  display_name: string;
+  brand: string;
+  asset_key: string;
+  source: string;
+  ui_metadata: boolean;
+  model_format: string;
+  skin_id?: string;
+}
 
 export interface DrivingSession {
   stream_id: string;
   agent_id: string;
   car: string;
   track: string;
+  car_visual?: CarVisual | null;
   session_type: number;
   sample_count: number;
   max_sequence: number;
@@ -32,6 +58,7 @@ export interface TelemetrySample {
   roll_rad?: number;
   position_world_m: Vec3;
   velocity_world_mps: Vec3;
+  car_damage: DamageZones;
   completed_laps?: number;
 }
 

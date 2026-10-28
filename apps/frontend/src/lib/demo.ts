@@ -36,6 +36,7 @@ export const demoSamples: TelemetrySample[] = Array.from({ length: 420 }, (_, i)
     heading_rad: angle + .4,
     position_world_m: [x, 0.1 + .05 * Math.sin(t), z],
     velocity_world_mps: [dx, 0, dz],
+    car_damage: [0, 0, 0, 0, 0],
     completed_laps: 0,
   };
 });

@@ -7,6 +7,8 @@ class DrivingSession(models.Model):
     agent_id = models.CharField(max_length=100, db_index=True)
     car = models.CharField(max_length=160)
     track = models.CharField(max_length=160)
+    track_map = models.JSONField(default=dict, blank=True)
+    car_visual = models.JSONField(default=dict, blank=True)
     session_type = models.SmallIntegerField(default=0)
     first_sample_at = models.DateTimeField()
     last_sample_at = models.DateTimeField()

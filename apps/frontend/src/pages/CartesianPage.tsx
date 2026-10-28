@@ -8,9 +8,10 @@ import { CartesianPlot } from '../modules/cartesian-2d/CartesianPlot';
 import { useReferenceTrajectory } from '../modules/cartesian-2d/useReferenceTrajectory';
 import { useLiveInterpolatedSample } from '../modules/telemetry/useLiveInterpolatedSample';
 import { formatNumber } from '../lib/telemetry';
+import { TrackMiniMap } from '../components/TrackMiniMap';
 
 export function CartesianPage() {
-  const { samples, cursorSample, isFollowing, setCursorSequence, sessions, activeSession, demo } = useApp();
+  const { samples, cursorSample, isFollowing, setCursorSequence, sessions, activeSession, trackMap, demo, publicMode } = useApp();
   const liveSample = useLiveInterpolatedSample(samples, isFollowing && !demo, 60);
   const displaySample = liveSample || cursorSample;
   const [showRef, setShowRef] = useState(true);
@@ -19,7 +20,7 @@ export function CartesianPage() {
   const references = useMemo(() => sessions.filter((s) => s.stream_id !== activeSession?.stream_id && s.track === activeSession?.track), [sessions, activeSession?.stream_id, activeSession?.track]);
   useEffect(() => { setRefId(references[0]?.stream_id ?? ''); }, [activeSession?.stream_id, demo]);
   const reference = references.find((s) => s.stream_id === refId) || null;
-  const result = useReferenceTrajectory(activeSession, reference, demo, showRef);
+  const result = useReferenceTrajectory(activeSession, reference, demo, showRef, publicMode);
   return <>
     <PageTitle eyebrow="MÓDULOS / ÁLGEBRA APLICADA" title="Plano cartesiano 2D"
       subtitle="Trajetória em X/Z, vetor velocidade e comparação geométrica com outra captura da mesma pista."/>
@@ -32,10 +33,13 @@ export function CartesianPage() {
         {showRef && !demo && <div className="reference-select"><label htmlFor="cart-ref">CAPTURA DE REFERÊNCIA</label>
           <select id="cart-ref" value={refId} onChange={(e) => setRefId(e.target.value)}>
             {!references.length && <option value="">Nenhuma sessão na mesma pista</option>}
-            {references.map((s) => <option key={s.stream_id} value={s.stream_id}>{s.car} · {new Date(s.last_sample_at).toLocaleDateString('pt-BR')} · {s.stream_id.slice(0,8)}</option>)}
+            {references.map((s) => <option key={s.stream_id} value={s.stream_id}>{s.car_visual?.display_name || s.car} · {new Date(s.last_sample_at).toLocaleDateString('pt-BR')} · {s.stream_id.slice(0,8)}</option>)}
           </select></div>}
-        <CartesianPlot samples={samples} reference={showRef ? result.positions : []} cursorSequence={displaySample.sequence}
+        <CartesianPlot samples={samples} reference={showRef ? result.positions : []} trackMap={trackMap} cursorSequence={displaySample.sequence}
           selectedSample={displaySample} onSelect={setCursorSequence} showVelocity={showVelocity} />
+      </Panel>
+      <Panel title="Mapa da pista" subtitle="Projeção X/Z do traçado capturado nesta sessão">
+        <TrackMiniMap samples={samples} selected={displaySample} reference={showRef ? result.positions : []} trackMap={trackMap} trackName={activeSession?.track}/>
       </Panel>
       <div className="content-grid split-equal">
         <Panel title="Coordenadas do carro" subtitle={`Amostra #${displaySample.sequence}`}>

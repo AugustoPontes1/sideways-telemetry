@@ -123,3 +123,18 @@ class SessionLiveConsumer(AsyncWebsocketConsumer):
     async def disconnect(self, close_code):
         if hasattr(self, "group_name"):
             await self.channel_layer.group_discard(self.group_name, self.channel_name)
+
+
+class PublicSessionLiveConsumer(SessionLiveConsumer):
+    """Read-only live channel for the public telemetry view."""
+
+    async def connect(self):
+        self.stream_id = self.scope["url_route"]["kwargs"]["stream_id"]
+        if not await database_sync_to_async(
+            lambda: DrivingSession.objects.filter(stream_id=self.stream_id).exists()
+        )():
+            await self.close(code=4404)
+            return
+        self.group_name = stream_group(self.stream_id)
+        await self.channel_layer.group_add(self.group_name, self.channel_name)
+        await self.accept()

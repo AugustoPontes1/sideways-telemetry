@@ -57,22 +57,26 @@ Requer Python **3.11+** e acesso às dependências PyPI.
 cd ~/drift-telemetry-lab/backend
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements-dev.txt
-export DJANGO_DEBUG=1
-export TELEMETRY_TOKEN="token-seguro-para-testes-locais"
+pip install -r requirements.txt
 python manage.py migrate
 python manage.py createsuperuser
 python manage.py runserver 127.0.0.1:8000
 ```
+
+Em desenvolvimento, o backend carrega automaticamente `apps/backend/.env`.
+Coloque nele `DJANGO_DEBUG=True` e `TELEMETRY_TOKEN`.
 
 No **outro terminal** do WSL, inicie o agente com o mesmo token. O teste de `ws://` só é permitido para localhost:
 
 ```bash
 cd ~/drift-telemetry-lab/telemetry-agent
 source .venv/bin/activate
-export TELEMETRY_TOKEN="token-seguro-para-testes-locais"
-python main.py --upstream-url ws://127.0.0.1:8000/ws/ingest/ --allow-insecure-dev
+python main.py --allow-insecure-dev
 ```
+
+O agente também carrega automaticamente o mesmo `apps/backend/.env`. O
+`TELEMETRY_TOKEN` deve ser idêntico nos dois processos; reinicie-os depois de
+alterar o arquivo.
 
 Depois, em outro terminal na **raiz** do repositório:
 
@@ -131,15 +135,16 @@ python main.py
 
 Use DNS ou IP no certificado de TLS compatível com o `TELEMETRY_UPSTREAM_URL`. **Não desative validação TLS**. O token do `telemetry-agent` tem que ser idêntico ao do backend e `TELEMETRY_AGENT_ID` deve corresponder a `wsl-assetto-agent` (ou ser alterado nos dois lados).
 
-## API REST (somente usuários Django `is_staff` autenticados)
+## API REST
 
-A API não aceita Bearer token do agente: usa sessão/cookie Django. Nas requisições POST pelo frontend inclua o token CSRF exigido pelo Django. Após login em `/admin/login/`, acesse pelo mesmo domínio:
+A API privada não aceita Bearer token do agente: usa sessão/cookie Django e exige usuário `is_staff`. Nas requisições POST pelo frontend inclua o token CSRF exigido pelo Django. Após login em `/admin/login/`, acesse pelo mesmo domínio. Para compartilhamento local, o frontend oferece `/visao-publica`; essa área usa somente as rotas com prefixo `/api/public/` e o WebSocket `/ws/public/`, sem conta, sem login e sem permissão de escrita. A ingestão `/ws/ingest/` continua exigindo `TELEMETRY_TOKEN`.
 
 | Método e caminho | Descrição |
 |---|---|
-| `GET /api/sessions/` | Capturas ordenadas pela última amostra |
+| `GET /api/sessions/` | Capturas ordenadas pela última amostra; inclui `car_visual` quando o bridge encontrou metadados do carro |
 | `GET /api/sessions/<UUID>/` | Metadados da captura |
 | `GET /api/sessions/<UUID>/samples/?after=-1&limit=250` | Página sequencial de telemetria para 2D/3D |
+| `GET /api/sessions/<UUID>/track-map/` | Linha completa ou overview da pista extraído pelo bridge, quando uma linha AI, `map.png`/JPEG ou `outline.png` foi encontrado |
 | `GET /api/sessions/<UUID>/analysis/` | Estatísticas globais e eventos na janela recente |
 | `GET /api/sessions/<UUID>/analysis/compare/?reference=<OUTRO_UUID>` | Distância geométrica até uma trajetória de referência gravada |
 | `GET /api/learning/topics/` | Temas de exercícios disponíveis |
@@ -164,6 +169,14 @@ wss://SEU_HOST/ws/sessions/<UUID>/live/
 ```
 
 Receberá lotes `telemetry.samples` com a sequência, timestamp, velocidade, RPM, pedais, direção e posição/velocidade mundiais. O backend publica todas as amostras *novas* de cada lote para o frontend poder interpolar o movimento do carro, mesmo recebendo os lotes a cada ~200 ms. Se perder a conexão, retome pelo endpoint REST com `after=<ultima_sequence>`.
+
+O modo público usa o mesmo formato de mensagens em:
+
+```
+ws://SEU_HOST/ws/public/sessions/<UUID>/live/
+```
+
+e replica as leituras REST com `/api/public/`.
 
 ## Matemática e análise — limites explícitos
 

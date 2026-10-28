@@ -13,7 +13,7 @@ from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.security.websocket import AllowedHostsOriginValidator
 from django.urls import path
 
-from telemetry.consumers import IngestConsumer, SessionLiveConsumer
+from telemetry.consumers import IngestConsumer, PublicSessionLiveConsumer, SessionLiveConsumer
 
 application = ProtocolTypeRouter({
     "http": django_application,
@@ -23,5 +23,7 @@ application = ProtocolTypeRouter({
         # Browsers use the Django session cookie and an Origin check.
         path("ws/sessions/<uuid:stream_id>/live/",
              AllowedHostsOriginValidator(AuthMiddlewareStack(SessionLiveConsumer.as_asgi()))),
+        path("ws/public/sessions/<uuid:stream_id>/live/",
+             AllowedHostsOriginValidator(PublicSessionLiveConsumer.as_asgi())),
     ]),
 })

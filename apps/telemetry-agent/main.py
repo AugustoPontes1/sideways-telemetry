@@ -8,12 +8,17 @@ import logging
 import os
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 from buffer import BufferFullError, PersistentBuffer
 from normalizer import InvalidTelemetry
 from transport import TrasnportConfig, WebSocketTransport
 from receiver import start_receiver, TelemetryReceiver
 
 LOG = logging.getLogger("telemetry-agent")
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+load_dotenv(PROJECT_ROOT / "apps" / "backend" / ".env")
 
 
 def config_from_args() -> argparse.Namespace:

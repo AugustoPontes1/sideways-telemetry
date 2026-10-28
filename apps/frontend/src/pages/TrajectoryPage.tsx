@@ -11,7 +11,7 @@ import { useLiveInterpolatedSample } from '../modules/telemetry/useLiveInterpola
 import { formatNumber, radiansToDegrees } from '../lib/telemetry';
 
 export function TrajectoryPage() {
-  const { samples, cursorSample, sessions, activeSession, demo, isFollowing, setCursorSequence, resumeLive } = useApp();
+  const { samples, cursorSample, sessions, activeSession, trackMap, demo, isFollowing, setCursorSequence, resumeLive, publicMode } = useApp();
   const liveSample = useLiveInterpolatedSample(samples, isFollowing && !demo, 60);
   const displaySample = liveSample || cursorSample;
   const [refId, setRefId] = useState('');
@@ -19,15 +19,16 @@ export function TrajectoryPage() {
   const references = useMemo(() => sessions.filter((s) => s.stream_id !== activeSession?.stream_id && s.track === activeSession?.track), [sessions, activeSession?.stream_id, activeSession?.track]);
   useEffect(() => { setRefId(references[0]?.stream_id || ''); }, [demo, activeSession?.stream_id]);
   const reference = references.find((s) => s.stream_id === refId) || null;
-  const { positions, loading, error } = useReferenceTrajectory(activeSession, reference, demo, showRef);
+  const { positions, loading, error } = useReferenceTrajectory(activeSession, reference, demo, showRef, publicMode);
   const playback = usePlayback(samples, cursorSample?.sequence ?? null, setCursorSequence);
   return <>
     <PageTitle eyebrow="MÓDULOS / REPLAY" title="Trajetória em 3D"
       subtitle="Reviva o movimento em três dimensões, observe a orientação do carro e compare com um traçado de referência."/>
     {displaySample && samples.length ? <>
-      <Panel title="Visualizador do carro" subtitle="Modelo didático · coordenadas globais X/Y/Z · direção a validar"
+      <Panel title="Visualizador do carro" subtitle="Miniatura adaptada ao carro detectado · mapa do traçado capturado · coordenadas X/Y/Z"
         action={<span className="view-label"><Camera size={16}/> Câmera livre</span>}>
-        <TrajectoryScene samples={samples} selected={displaySample} reference={showRef ? positions : []}/>
+        <TrajectoryScene samples={samples} selected={displaySample} reference={showRef ? positions : []} trackMap={trackMap}
+          carName={activeSession?.car} carVisual={activeSession?.car_visual} trackName={activeSession?.track}/>
         <div className="playback-toolbar">
           <button className="button button-primary" onClick={() => playback.setPlaying(!playback.playing)}>
             {playback.playing ? <Pause size={16}/> : <Play size={16}/>} {playback.playing ? 'Pausar' : 'Reproduzir'}
@@ -39,7 +40,7 @@ export function TrajectoryPage() {
           <label className="switch-label"><input type="checkbox" checked={showRef} onChange={(e) => setShowRef(e.target.checked)}/> Mostrar referência</label>
           {showRef && !demo && <select className="ref-inline" aria-label="Selecionar trajetória de referência" value={refId} onChange={(e) => setRefId(e.target.value)}>
             {!references.length && <option value="">Sem sessão de referência</option>}
-            {references.map((s) => <option key={s.stream_id} value={s.stream_id}>{s.car} · {s.stream_id.slice(0,8)}</option>)}
+            {references.map((s) => <option key={s.stream_id} value={s.stream_id}>{s.car_visual?.display_name || s.car} · {s.stream_id.slice(0,8)}</option>)}
           </select>}
         </div>
         {loading && <p className="muted small">Buscando trajetória gravada…</p>}

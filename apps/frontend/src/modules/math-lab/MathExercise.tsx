@@ -70,7 +70,9 @@ function BasisDimensionExplanation({ calculation }: { calculation: BasisDimensio
   </section>;
 }
 
-export function MathExercise({ streamId, samples, demo }: { streamId: string; samples: TelemetrySample[]; demo: boolean }) {
+export function MathExercise({ streamId, samples, demo, publicMode }: {
+  streamId: string; samples: TelemetrySample[]; demo: boolean; publicMode: boolean;
+}) {
   const [topics, setTopics] = useState<LearningTopic[]>(demo ? demoTopics : []);
   const [topic, setTopic] = useState('displacement');
   const [aInput, setA] = useState<number | null>(null);
@@ -92,11 +94,11 @@ export function MathExercise({ streamId, samples, demo }: { streamId: string; sa
   useEffect(() => {
     if (demo) { setTopics(demoTopics); return; }
     let valid = true;
-    getTopics().then((x) => { if (valid) setTopics(x.topics); }).catch((exc: unknown) => {
+    getTopics(publicMode).then((x) => { if (valid) setTopics(x.topics); }).catch((exc: unknown) => {
       if (valid) setError(exc instanceof Error ? exc.message : 'Falha ao listar temas.');
     });
     return () => { valid = false; };
-  }, [demo]);
+  }, [demo, publicMode]);
 
   const candidateSamples = useMemo(() => downsample(samples, 80), [samples]);
 // Freeze choices when loading the window; live updates do not clear the student's answer.
@@ -118,12 +120,12 @@ export function MathExercise({ streamId, samples, demo }: { streamId: string; sa
     let active = true;
     const timer = setTimeout(() => {
       setBusy(true);
-      getExercise(streamId, topic, a, b).then((x) => { if (active) setExercise(x); })
+      getExercise(streamId, topic, a, b, false, publicMode).then((x) => { if (active) setExercise(x); })
         .catch((exc: unknown) => { if (active) setError(exc instanceof Error ? exc.message : 'Exercício indisponível.'); })
         .finally(() => { if (active) setBusy(false); });
     }, 180);
     return () => { active = false; clearTimeout(timer); };
-  }, [streamId, topic, a, b, demo]);
+  }, [streamId, topic, a, b, demo, publicMode]);
 
   async function reveal() {
     if (expanded) { setExpanded(false); return; }
@@ -131,7 +133,7 @@ export function MathExercise({ streamId, samples, demo }: { streamId: string; sa
     setError(null);
     setBusy(true);
     try {
-      const item = demo ? generateDemoExercise(topic, a, b, true) : await getExercise(streamId, topic, a, b, true);
+      const item = demo ? generateDemoExercise(topic, a, b, true) : await getExercise(streamId, topic, a, b, true, publicMode);
       setExercise(item); setExpanded(true); setSolutionTab('steps');
     } catch (exc) {
       setError(exc instanceof Error ? exc.message : 'Não foi possível revelar a resolução.');
@@ -147,7 +149,7 @@ export function MathExercise({ streamId, samples, demo }: { streamId: string; sa
       const result = demo ? {
         correct: compareDemoAnswer(exercise.expected_result, parsed),
         expected_result: exercise.expected_result, solution_revealed: false,
-      } : await checkExercise(streamId, topic, a, b, parsed);
+      } : await checkExercise(streamId, topic, a, b, parsed, publicMode);
       setCheck(result);
     } catch (exc) {
       setError(exc instanceof Error ? exc.message : 'Erro ao conferir a resposta.');

@@ -1,7 +1,7 @@
 import uuid
 
 from django.shortcuts import get_object_or_404
-from rest_framework.permissions import IsAdminUser
+from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -51,3 +51,11 @@ class TrajectoryComparisonView(APIView):
         output["current_stream_id"] = str(stream_id)
         output["reference_stream_id"] = str(reference_id)
         return Response(output)
+
+
+class PublicSessionAnalysisView(SessionAnalysisView):
+    permission_classes = [AllowAny]
+
+
+class PublicTrajectoryComparisonView(TrajectoryComparisonView):
+    permission_classes = [AllowAny]

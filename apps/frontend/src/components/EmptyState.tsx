@@ -2,7 +2,7 @@ import { AlertTriangle, Database, LogIn } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 export function EmptyState({ title = 'Nenhuma sessão disponível', detail }: { title?: string; detail?: string }) {
-  const { error, streamError, demo, setDemo, reloadSessions } = useApp();
+  const { error, streamError, demo, setDemo, reloadSessions, publicMode } = useApp();
   const message = detail || error || streamError || 'Inicie uma sessão do Assetto Corsa com a ponte e o agente conectados.';
   return (
     <div className="empty-state" role="status">
@@ -14,7 +14,7 @@ export function EmptyState({ title = 'Nenhuma sessão disponível', detail }: { 
         <button className="button button-primary" onClick={() => setDemo(!demo)}>
           {demo ? 'Usar dados reais' : 'Abrir demonstração'}
         </button>
-        {!demo && <a className="button button-secondary" href="/admin/login/?next=/"><LogIn size={15} /> Entrar no Django</a>}
+        {!demo && !publicMode && <a className="button button-secondary" href="/admin/login/?next=/"><LogIn size={15} /> Entrar no Django</a>}
       </div>
     </div>
   );

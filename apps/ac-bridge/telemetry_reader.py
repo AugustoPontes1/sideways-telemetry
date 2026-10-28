@@ -9,6 +9,7 @@ from dataclasses import asdict, dataclass
 from shared_memory import ACSharedMemory, utf16_text
 
 AC_LIVE = 2 # 0=OFF, 1=REPLAY, 2=LIVE, 3=PAUSE
+STATIC_REFRESH_INTERVAL_S = 0.5
 
 
 class TelemetryStalledError(ConnectionError):
@@ -41,6 +42,7 @@ class TelemetryFrame:
     acceleration_g: tuple[float, float, float]
     angular_velocity_local_rad_s: tuple[float, float, float]
     wheel_slip_raw: tuple[float, float, float, float]
+    car_damage: tuple[float, float, float, float, float]
 
     def asdict(self) -> dict:
         return asdict(self)
@@ -50,12 +52,23 @@ class TelemetryReader:
     def __init__(self, source: ACSharedMemory):
         self.source = source
         static = source.read_static()
-        self.car = utf16_text(static.carModel)
-        self.track = utf16_text(static.track)
+        self.car = utf16_text(static.carModel).strip()
+        self.track = utf16_text(static.track).strip()
         self._previous_packet: int | None = None
         self._last_update_at = time.monotonic()
+        self._last_static_refresh_at = self._last_update_at
+
+    def _refresh_static(self) -> None:
+        now = time.monotonic()
+        if now - self._last_static_refresh_at < STATIC_REFRESH_INTERVAL_S:
+            return
+        static = self.source.read_static()
+        self.car = utf16_text(static.carModel).strip()
+        self.track = utf16_text(static.track).strip()
+        self._last_static_refresh_at = now
 
     def read(self) -> TelemetryFrame | None:
+        self._refresh_static()
         snapshot = self.source.read()
         if snapshot is None:
             return None
@@ -74,6 +87,7 @@ class TelemetryReader:
             p.speedKmh, p.gas, p.brake, p.clutch, p.steerAngle,
             p.heading, p.pitch, p.roll,
             *p.velocity, *p.accG, *p.localAngularVel, *g.carCoordinates, *p.wheelSlip,
+            *p.carDamage,
         )
         if not all(math.isfinite(v) for v in values):
             return None
@@ -108,5 +122,6 @@ class TelemetryReader:
             velocity_world_mps=tuple(float(x) for x in p.velocity),
             acceleration_g=tuple(float(x) for x in p.accG),
             angular_velocity_local_rad_s=tuple(float(x) for x in p.localAngularVel),
-            wheel_slip_raw=tuple(float(x) for x in p.wheelSlip),            
+            wheel_slip_raw=tuple(float(x) for x in p.wheelSlip),
+            car_damage=tuple(float(x) for x in p.carDamage),
         )

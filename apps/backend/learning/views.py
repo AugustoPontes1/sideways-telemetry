@@ -1,6 +1,6 @@
 """Study Mode API: the solution appears only when reveal=1."""
 from django.shortcuts import get_object_or_404
-from rest_framework.permissions import IsAdminUser
+from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -72,3 +72,15 @@ class SessionCheckAnswerView(APIView):
             "expected_result": exercise["expected_result"],
             "solution_revealed": False,
         })
+
+
+class PublicExerciseTopicsView(ExerciseTopicsView):
+    permission_classes = [AllowAny]
+
+
+class PublicSessionExerciseView(SessionExerciseView):
+    permission_classes = [AllowAny]
+
+
+class PublicSessionCheckAnswerView(SessionCheckAnswerView):
+    permission_classes = [AllowAny]

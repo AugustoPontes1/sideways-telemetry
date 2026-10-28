@@ -6,7 +6,7 @@ import { Panel } from '../components/Panel';
 import { MathExercise } from '../modules/math-lab/MathExercise';
 
 export function MathLabPage() {
-  const { samples, activeSession, demo } = useApp();
+  const { samples, activeSession, demo, publicMode } = useApp();
   return <>
     <PageTitle eyebrow="MÓDULOS / ÁLGEBRA LINEAR" title="Laboratório matemático"
       subtitle="Use os valores da sua pilotagem como exercícios. Veja o resultado, resolva à mão e revele a explicação somente depois."/>
@@ -18,7 +18,7 @@ export function MathLabPage() {
       </div>
       <div className="content-grid math-grid">
         <Panel title="Exercício com telemetria" subtitle="Selecione um tema e dois instantes da sessão">
-          <MathExercise streamId={activeSession.stream_id} samples={samples} demo={demo}/>
+          <MathExercise streamId={activeSession.stream_id} samples={samples} demo={demo} publicMode={publicMode}/>
         </Panel>
         <Panel title="Como estudar com os dados" subtitle="Método de aprendizagem sugerido">
           <div className="study-steps">

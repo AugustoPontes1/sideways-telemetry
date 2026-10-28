@@ -12,6 +12,8 @@ from typing import Any
 
 MAX_BATCH_BYTES = 1_048_576
 MAX_SAMPLES = 100
+MAX_TRACK_MAP_POINTS = 1200
+MAX_CAR_VISUAL_TEXT = 160
 MIN_EPOCH_NS = 946_684_800_000_000_000  # 2000-01-01
 MAX_EPOCH_NS = 4_102_444_800_000_000_000  # 2100-01-01
 
@@ -58,6 +60,59 @@ def _mapping(value: Any, name: str) -> Mapping[str, Any]:
         raise SchemaError(f"{name}: expected object")
     return value
 
+
+def _track_map(value: Any) -> dict[str, Any] | None:
+    if value is None:
+        return None
+    mapping = _mapping(value, "track_map")
+    source = _str(mapping, "source", 64)
+    image_url = mapping.get("image_url")
+    if image_url is not None:
+        image_url = _str(mapping, "image_url", 512)
+        if not image_url.startswith("/track-maps/"):
+            raise SchemaError("track_map.image_url: expected local track-map asset")
+    points = mapping.get("points")
+    if not isinstance(points, list) or len(points) > MAX_TRACK_MAP_POINTS:
+        raise SchemaError(f"track_map.points: expected 0..{MAX_TRACK_MAP_POINTS} points")
+    if len(points) < 2 and image_url is None:
+        raise SchemaError("track_map: expected at least 2 points or image_url")
+    result = {"source": source, "points": [_vector({"point": point}, "point", 3) for point in points]}
+    if image_url is not None:
+        result["image_url"] = image_url
+    map_config = mapping.get("map_config")
+    if map_config is not None:
+        if not isinstance(map_config, Mapping):
+            raise SchemaError("track_map.map_config: expected object")
+        config: dict[str, float] = {}
+        for name in ("width", "height", "offset_x", "offset_z", "scale_factor"):
+            raw = map_config.get(name)
+            if type(raw) not in (int, float) or not math.isfinite(raw):
+                raise SchemaError(f"track_map.map_config.{name}: expected finite number")
+            config[name] = float(raw)
+        if config["width"] <= 0 or config["height"] <= 0:
+            raise SchemaError("track_map.map_config: width and height must be positive")
+        result["map_config"] = config
+    return result
+
+
+def _car_visual(value: Any) -> dict[str, Any] | None:
+    if value is None:
+        return None
+    mapping = _mapping(value, "car_visual")
+    ui_metadata = mapping.get("ui_metadata")
+    if type(ui_metadata) is not bool:
+        raise SchemaError("car_visual.ui_metadata: expected boolean")
+    return {
+        "id": _str(mapping, "id", MAX_CAR_VISUAL_TEXT),
+        "display_name": _str(mapping, "display_name", MAX_CAR_VISUAL_TEXT),
+        "brand": _str(mapping, "brand", 80),
+        "asset_key": _str(mapping, "asset_key", MAX_CAR_VISUAL_TEXT),
+        "source": _str(mapping, "source", 64),
+        "ui_metadata": ui_metadata,
+        "model_format": _str(mapping, "model_format", 16),
+        "skin_id": _str(mapping, "skin_id", MAX_CAR_VISUAL_TEXT) if "skin_id" in mapping else "",
+    }
+
 def validate_frame(payload: Any) -> dict[str, Any]:
     """Return a clean v1 dict ready for JSON. Reject surprising units/NaN."""
     f = _mapping(payload, "telemetry")
@@ -88,7 +143,16 @@ def validate_frame(payload: Any) -> dict[str, Any]:
         "acceleration_g": _vector(f, "acceleration_g", 3),
         "angular_velocity_local_rad_s": _vector(f, "angular_velocity_local_rad_s", 3),
         "wheel_slip_raw": _vector(f, "wheel_slip_raw", 4),
+        "car_damage": _vector({**f, "car_damage": f.get("car_damage", [0.0] * 5)}, "car_damage", 5),
     }
+    if any(value < 0 for value in result["car_damage"]):
+        raise SchemaError("car_damage: negative value")
+    track_map = _track_map(f.get("track_map"))
+    if track_map is not None:
+        result["track_map"] = track_map
+    car_visual = _car_visual(f.get("car_visual"))
+    if car_visual is not None:
+        result["car_visual"] = car_visual
     speed_mps = _real(f, "speed_mps", -600 / 3.6, 600 / 3.6)
     if not math.isclose(speed_mps, result["speed_kmh"] / 3.6, abs_tol=1e-3, rel_tol=1e-5):
         raise SchemaError("speed_mps and speed_kmh are inconsistent")

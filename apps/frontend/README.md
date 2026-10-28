@@ -36,7 +36,7 @@ npm install
 npm run dev
 ```
 
-Abra `http://127.0.0.1:5173`. O app inicia em modo ao vivo e carrega sessões do Django. Ative **DEMO** quando quiser testar a interface sem Assetto Corsa.
+Abra `http://127.0.0.1:5173` localmente ou `http://<ip-lan-do-windows>:5173` em outra máquina. O app inicia em modo ao vivo e carrega sessões do Django. Ative **DEMO** quando quiser testar a interface sem Assetto Corsa.
 
 Para se conectar ao backend de desenvolvimento do WSL:
 
@@ -55,7 +55,13 @@ npm run dev
 
 1. Entre por `http://127.0.0.1:5173/admin/login/?next=/`, usando **usuário Django `is_staff`**. O Django cria o cookie de sessão e CSRF na mesma origem visível ao navegador.
 2. Volte para a página, confirme que DEMO está desativado e escolha uma sessão.
-3. Inicie AC Bridge no Windows, Telemetry Agent no WSL e envie ao backend conforme os respectivos READMEs.
+3. Inicie AC Bridge no Windows, Telemetry Agent no WSL e envie ao backend conforme os respectivos READMEs. O bridge atualiza os IDs do carro, pista e layout em tempo real a partir da memória compartilhada; enquanto o jogo carrega, usa `Documents\\Assetto Corsa\\cfg\\race.ini` como fallback. Para obter o mapa completo e os metadados de mods, ele procura automaticamente `content/tracks/<track>/ai/fast_lane.ai`, `ideal_line.ai`, `map.png`/JPEG, `ui/outline.png` e `data/map.ini` em todas as bibliotecas Steam detectadas, além de `content/cars/<car>/ui/ui_car.json`. Defina `AC_ROOT` apenas se a instalação estiver fora desses locais.
+
+Para compartilhar os dados sem criar conta ou fazer login, abra `/visao-publica`. Essa rota oferece as mesmas páginas de visão geral, telemetria, plano 2D, replay 3D e Laboratório matemático usando endpoints públicos somente para leitura; a ingestão, o `/admin` e as rotas privadas continuam protegidos.
+
+Para renderizar a malha e a pintura exatas do carro no navegador, instale uma vez no Windows o conversor MIT diretamente da fonte. Como o repositório está no WSL, execute a instalação a partir de uma pasta local do Windows, não de `\\wsl.localhost\...`: `Set-Location C:\Temp; py -3 -m pip install "https://github.com/semiloker/assetto-corsa-gltf/archive/refs/heads/main.zip"`. O bridge escolhe automaticamente o KN5 de maior detalhe, a pasta do carro modificado e o `CAR_0/SKIN` ativo, converte a combinação para um GLB específico no primeiro acesso e serve `/car-models/<ID>.glb?skin=<SKIN>` na porta `8766`; o Vite encaminha essa rota. Sem o conversor instalado, a interface mantém a miniatura procedural e registra o motivo no log do bridge.
+
+KN5 protegido por CSP ou corrompido não pode ser extraído pelo conversor. O bridge tenta LODs alternativos quando existem; se todos falharem, a interface usa a miniatura procedural sem quebrar o proxy.
 
 O proxy do Vite (`vite.config.ts`) encaminha `/api/`, `/admin/`, `/static/`, `/healthz/` e `/ws/` para o Django. Se Django rodar em outra VM, configure `VITE_BACKEND_TARGET=http://IP_INTERNO:8000` **somente para desenvolvimento em rede confiável**, atualize `DJANGO_ALLOWED_HOSTS` e permita a origem dev em `DJANGO_CSRF_TRUSTED_ORIGINS`. Nunca exponha Django debug ou o backend HTTP sem proteção na internet.
 
@@ -63,6 +69,7 @@ O proxy do Vite (`vite.config.ts`) encaminha `/api/`, `/admin/`, `/static/`, `/h
 
 - `GET /api/sessions/` — lista de capturas de telemetria.
 - `GET /api/sessions/{UUID}/samples/?after=...&limit=...` — amostras paginadas.
+- `GET /api/sessions/{UUID}/track-map/` — mapa completo da pista, quando o bridge encontrou uma linha AI ou o overview `map.png`/JPEG/`outline.png` instalado.
 - `GET /api/sessions/{UUID}/analysis/` — estatísticas e eventos de entrada.
 - `GET /api/sessions/{UUID}/analysis/compare/?reference={UUID}` — distância geométrica à referência gravada.
 - `GET /api/learning/topics/` — temas disponíveis (8 no backend atual).
@@ -77,9 +84,11 @@ O cliente sempre exibe o resultado esperado no Modo Estudo, conforme sua prefer�
 
 **Telemetria:** séries temporais de acelerador, freio, embreagem, velocidade, RPM e direção. Clicar em um ponto move o cursor compartilhado com o replay e a trajetória.
 
-**2D:** projeção horizontal da posição mundial em X/Z (X no eixo horizontal do gráfico, Z no vertical), escala 1:1 e vetor velocidade escalado para visualização. Exibe uma trajetória de referência gravada **na mesma pista** se disponível. Distância e limitações são obtidas do backend.
+**2D:** projeção horizontal da posição mundial em X/Z (X no eixo horizontal do gráfico, Z no vertical), escala 1:1 e vetor velocidade escalado para visualização. Quando disponível, mostra a linha completa de `fast_lane.ai`/`ideal_line.ai` da pista e sobrepõe a sessão atual apenas para comparação; se o mod não tiver linha AI, mostra o `map.png`/JPEG/`outline.png` instalado e a sessão capturada sobre ele. O marcador pulsante do carro usa `data/map.ini` (`WIDTH`, `HEIGHT`, `X_OFFSET` e `Z_OFFSET`) quando disponível, mantendo a posição correta no mapa durante a reprodução ao vivo. Exibe uma trajetória de referência gravada **na mesma pista** se disponível. Distância e limitações são obtidas do backend.
 
-**3D:** posição X/Y/Z e `heading_rad` brutos, modelo geométrico didático, câmera orbital, linha temporal e replay 0,5× a 4×. Referência da mesma pista é desenhada tracejada. O modo de replay usa amostras já recebidas; *não é um novo simulador de física*.
+**3D:** posição X/Y/Z e `heading_rad` brutos, malha GLB convertida automaticamente do KN5 de maior detalhe com a `CAR_0/SKIN` ativa quando o conversor está instalado ou miniatura geométrica adaptada ao identificador detectado, mapa completo da pista quando uma linha AI ou overview instalado está disponível, câmera orbital, linha temporal e replay 0,5× a 4×. O bridge lê `ui/ui_car.json`, `content/cars/<car>/skins/<skin>` e os arquivos de qualquer carro instalado, inclusive mods, e envia o ID, nome, marca e skin ao backend. O Shared Memory fornece o identificador do carro; a configuração da sessão fornece a livery ativa.
+
+**Danos:** o Shared Memory original do Assetto Corsa fornece cinco valores agregados em `carDamage`: frente, traseira, lado esquerdo, lado direito e centro. O painel converte valores normalizados ou percentuais para exibição e mantém valores brutos acima de 100 como pontos, mas não inventa dano de peça, suspensão, pneu ou motor que não esteja no contrato de telemetria.
 
 **Álgebra Linear:** exercícios de deslocamento, combinação linear, determinante, subespaços, posto/dimensão, sistema de Gauss e inversa, baseados nos temas existentes no backend. No modo DEMO há somente três temas locais, sempre rotulados como fictícios.
 

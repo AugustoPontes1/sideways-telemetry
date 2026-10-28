@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { Activity, BarChart3, BookOpen, Boxes, CircleHelp, Gauge, GitBranch, LogIn, Menu, Radio, RefreshCw, X } from 'lucide-react';
+import { Activity, BarChart3, BookOpen, Boxes, CircleHelp, Gauge, GitBranch, Globe2, LogIn, Menu, Radio, RefreshCw, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Timeline } from './Timeline';
 
@@ -13,7 +13,7 @@ const links = [
 ];
 
 export function Layout() {
-  const { demo, setDemo, sessions, activeSession, selectSession, loading, liveStatus, streamError, reloadSessions } = useApp();
+  const { demo, setDemo, sessions, activeSession, selectSession, loading, liveStatus, streamError, reloadSessions, publicMode, routePath } = useApp();
   const [open, setOpen] = useState(false);
   const statusLabel = demo ? 'Dados simulados' : streamError && liveStatus === 'connected' ? 'Sem dados recentes' : liveStatus === 'connected' ? 'Ao vivo' : liveStatus === 'connecting' ? 'Conectando' : 'Desconectado';
   return <div className="app-shell">
@@ -27,10 +27,15 @@ export function Layout() {
       <div className="nav-label">WORKSPACE</div>
       <nav aria-label="Navegação principal">
         {links.map(({ to, label, icon: Icon, end }) => <NavLink
-          key={to} to={to} end={end} onClick={() => setOpen(false)}
+          key={to} to={routePath(to)} end={end} onClick={() => setOpen(false)}
           className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
           <Icon size={18} strokeWidth={1.8}/>{label}
         </NavLink>)}
+        {!publicMode && <NavLink
+          to="/visao-publica" end onClick={() => setOpen(false)}
+          className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+          <Globe2 size={18} strokeWidth={1.8}/>Visão pública
+        </NavLink>}
       </nav>
       <div className="sidebar-bottom">
         <div className="sidebar-guide"><CircleHelp size={18}/><div><strong>Modo de aprendizagem</strong><p>Calcule no papel e revele a solução quando quiser.</p></div></div>
@@ -45,12 +50,13 @@ export function Layout() {
           <div className="session-controls">
             <select aria-label="Selecionar sessão" value={activeSession?.stream_id || ''}
               onChange={(e) => selectSession(e.target.value)} disabled={sessions.length === 0}>
-              {sessions.length ? sessions.map((s) => <option key={s.stream_id} value={s.stream_id}>{s.car} • {s.track} ({s.stream_id.slice(0, 8)})</option>) : <option value="">Nenhuma captura</option>}
+              {sessions.length ? sessions.map((s) => <option key={s.stream_id} value={s.stream_id}>{s.car_visual?.display_name || s.car} • {s.track} ({s.stream_id.slice(0, 8)})</option>) : <option value="">Nenhuma captura</option>}
             </select>
             {!demo && <button className="icon-btn" title="Atualizar sessões" onClick={reloadSessions} disabled={loading}><RefreshCw size={16}/></button>}
           </div>
         </div>
         <div className="topbar-right">
+          {publicMode && <span className="status-pill demo"><Globe2 size={14}/> Visão pública</span>}
           <span className={`status-pill ${demo ? 'demo' : liveStatus === 'connected' && !streamError ? 'good' : 'off'}`}>
             <span className="status-dot"/>{statusLabel}
           </span>
@@ -58,7 +64,7 @@ export function Layout() {
             <input type="checkbox" checked={demo} onChange={(e) => setDemo(e.target.checked)} />
             <span>DEMO</span>
           </label>
-          {!demo && <a href="/admin/login/?next=/" className="icon-btn login-icon" title="Entrar no Django"><LogIn size={18}/></a>}
+          {!demo && !publicMode && <a href="/admin/login/?next=/" className="icon-btn login-icon" title="Entrar no Django"><LogIn size={18}/></a>}
         </div>
       </header>
       {demo && <div className="demo-banner"><Radio size={14}/> Demonstração com dados fictícios — ative dados reais no topo para conectar ao homelab.</div>}
