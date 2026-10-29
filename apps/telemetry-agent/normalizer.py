@@ -6,6 +6,7 @@ validating coordinate conventions against the actual game.
 from __future__ import annotations
 
 import math
+import re
 import time
 import uuid
 from collections.abc import Mapping
@@ -17,6 +18,7 @@ class InvalidTelemetry(ValueError):
 
 MAX_TRACK_MAP_POINTS = 1200
 MAX_CAR_VISUAL_TEXT = 160
+HEX_COLOR_RE = re.compile(r"^#[0-9a-fA-F]{6}$")
 
 
 def _integer(data: Mapping, key: str, *, minimum: int = 0, maximum: int = 2**63 - 1) -> int:
@@ -109,6 +111,9 @@ def _car_visual(data: Mapping) -> dict | None:
     skin_id = value.get("skin_id", "")
     if not isinstance(skin_id, str) or len(skin_id) > MAX_CAR_VISUAL_TEXT or any(ord(ch) < 32 for ch in skin_id):
         raise InvalidTelemetry("car_visual.skin_id: texto inválido")
+    color_hex = value.get("color_hex", "")
+    if not isinstance(color_hex, str) or color_hex and not HEX_COLOR_RE.fullmatch(color_hex):
+        raise InvalidTelemetry("car_visual.color_hex: cor hexadecimal inválida")
     ui_metadata = value.get("ui_metadata")
     if type(ui_metadata) is not bool:
         raise InvalidTelemetry("car_visual.ui_metadata: esperado booleano")
@@ -121,6 +126,7 @@ def _car_visual(data: Mapping) -> dict | None:
         "ui_metadata": ui_metadata,
         "model_format": model_format,
         "skin_id": skin_id,
+        "color_hex": color_hex,
     }
 
 
