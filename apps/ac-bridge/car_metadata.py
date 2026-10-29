@@ -2,12 +2,20 @@
 from __future__ import annotations
 
 import json
+import colorsys
+from collections import Counter
 from pathlib import Path
 from typing import Any
 
 from content_paths import candidate_roots
 
+try:
+    from PIL import Image
+except ImportError:
+    Image = None
+
 MAX_UI_JSON_BYTES = 256 * 1024
+SKIN_COLOR_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 
 
 def _car_directory(root: Path, car_id: str) -> Path | None:
@@ -129,6 +137,67 @@ def _has_kn5(car_directory: Path) -> bool:
         return False
 
 
+def find_direct_model_asset(car_directory: Path) -> Path | None:
+    """Find an already browser-compatible GLB supplied by a car mod."""
+    try:
+        candidates = sorted(
+            path for path in car_directory.rglob("*.glb")
+            if path.is_file() and path.stat().st_size > 0
+        )
+    except OSError:
+        return None
+    return candidates[0] if candidates else None
+
+
+def _skin_image_candidates(skin_directory: Path) -> list[Path]:
+    try:
+        paths = [
+            path for path in skin_directory.rglob("*")
+            if path.is_file() and path.suffix.casefold() in SKIN_COLOR_EXTENSIONS
+        ]
+    except OSError:
+        return []
+    priority = ("body", "ext", "car", "paint", "livery", "main")
+    return sorted(
+        paths,
+        key=lambda path: (
+            0 if any(token in path.stem.casefold() for token in priority) else 1,
+            str(path).casefold(),
+        ),
+    )[:32]
+
+
+def _dominant_skin_color(skin_directory: Path | None) -> str | None:
+    """Estimate the primary visible livery color without loading full textures."""
+    if skin_directory is None or Image is None:
+        return None
+    colors: Counter[tuple[int, int, int]] = Counter()
+    for path in _skin_image_candidates(skin_directory):
+        try:
+            with Image.open(path) as source:
+                image = source.convert("RGBA")
+                image.thumbnail((48, 48))
+                for red, green, blue, alpha in image.getdata():
+                    if alpha < 32:
+                        continue
+                    hue, saturation, value = colorsys.rgb_to_hsv(red / 255, green / 255, blue / 255)
+                    if value < 0.08:
+                        continue
+                    quantized = (
+                        round(red / 32) * 32,
+                        round(green / 32) * 32,
+                        round(blue / 32) * 32,
+                    )
+                    weight = 3 if saturation >= 0.18 else 1
+                    colors[quantized] += weight
+        except (OSError, ValueError):
+            continue
+    if not colors:
+        return None
+    red, green, blue = colors.most_common(1)[0][0]
+    return f"#{min(red, 255):02x}{min(green, 255):02x}{min(blue, 255):02x}"
+
+
 def load_car_metadata(ac_root: str | None, car_id: str, skin_id: str | None = None) -> dict[str, Any] | None:
     """Return metadata for any car folder, including third-party mod folders.
 
@@ -143,6 +212,7 @@ def load_car_metadata(ac_root: str | None, car_id: str, skin_id: str | None = No
         return None
     display_name, brand, ui_metadata = _read_ui_metadata(directory)
     skin_directory = find_skin_directory(directory, skin_id or "")
+    direct_model = find_direct_model_asset(directory)
     return {
         "id": car_id,
         "display_name": display_name or car_id,
@@ -150,6 +220,7 @@ def load_car_metadata(ac_root: str | None, car_id: str, skin_id: str | None = No
         "asset_key": car_id,
         "source": "content/cars",
         "ui_metadata": ui_metadata,
-        "model_format": "kn5" if _has_kn5(directory) else "",
+        "model_format": "glb" if direct_model is not None else ("kn5" if _has_kn5(directory) else ""),
         "skin_id": skin_directory.name if skin_directory is not None else (skin_id or ""),
+        "color_hex": _dominant_skin_color(skin_directory),
     }

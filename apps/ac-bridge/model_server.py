@@ -15,7 +15,7 @@ from pathlib import Path
 from threading import Lock, Thread
 from urllib.parse import parse_qs, unquote, urlsplit
 
-from car_metadata import find_car_directory, find_kn5_candidates, find_skin_directory
+from car_metadata import find_car_directory, find_direct_model_asset, find_kn5_candidates, find_skin_directory
 from track_map import find_track_map_image
 
 LOG = logging.getLogger("ac-bridge.models")
@@ -78,6 +78,15 @@ class ModelAssetService:
             car_directory = find_car_directory(self.ac_root, car_id)
             if car_directory is None:
                 raise ModelConversionError(f"car folder not found: {car_id}")
+            direct_model = find_direct_model_asset(car_directory)
+            if direct_model is not None:
+                if direct_model.stat().st_size > MAX_MODEL_BYTES:
+                    raise ModelConversionError("installed GLB model exceeds the size limit")
+                temporary_cache = cached.with_suffix(".tmp")
+                shutil.copyfile(direct_model, temporary_cache)
+                os.replace(temporary_cache, cached)
+                LOG.info("Using installed GLB %s for %s", direct_model, car_id)
+                return cached
             kn5_candidates = find_kn5_candidates(car_directory)
             if not kn5_candidates:
                 raise ModelConversionError(f"render KN5 not found: {car_directory}")
