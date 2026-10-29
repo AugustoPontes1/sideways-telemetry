@@ -21,20 +21,10 @@ TOPICS = {
     "affine_subspace": {"title": "Reta deslocada: é subespaço?", "lessons": [12, 13, 14]},
     "gauss": {"title": "Sistema linear com dados do veículo", "lessons": [4, 5, 6, 7]},
     "inverse": {"title": "Inversa de matriz 2x2", "lessons": [8, 9, 11]},
-    "lesson19_01": {"title": "01 · Coordenadas em R² na base canônica", "lessons": [19]},
-    "lesson19_02": {"title": "02 · Coordenadas em R² em uma base oblíqua", "lessons": [19]},
-    "lesson19_03": {"title": "03 · Coordenadas de vetor em R²", "lessons": [19]},
-    "lesson19_04": {"title": "04 · Coordenadas em R³", "lessons": [19]},
-    "lesson19_05": {"title": "05 · Coordenadas em R³ com base não canônica", "lessons": [19]},
-    "lesson19_06": {"title": "06 · Coordenadas de polinômio", "lessons": [19]},
-    "lesson19_07": {"title": "07 · Coordenadas em P₂", "lessons": [19]},
-    "lesson19_08": {"title": "08 · Reconstrução do vetor pela base", "lessons": [19]},
-    "lesson19_09": {"title": "09 · Reconstrução do vetor em R³", "lessons": [19]},
-    "lesson19_10": {"title": "10 · Reconstrução de polinômio", "lessons": [19]},
-    "lesson19_11": {"title": "11 · Coordenadas entre duas bases", "lessons": [19]},
-    "lesson19_12": {"title": "12 · Matriz de mudança de base", "lessons": [19]},
-    "lesson19_13": {"title": "13 · Matriz e matriz inversa de mudança", "lessons": [19]},
-    "lesson19_14": {"title": "14 · Mudança da base β para β′", "lessons": [19]},
+    "lesson19_coordinates": {"title": "Coordenadas de vetores em R² e R³", "lessons": [19]},
+    "lesson19_polynomials": {"title": "Coordenadas de polinômios em P₁ e P₂", "lessons": [19]},
+    "lesson19_reconstruction": {"title": "Reconstrução de vetores e polinômios", "lessons": [19]},
+    "lesson19_change_of_basis": {"title": "Coordenadas e mudança de base", "lessons": [19]},
 }
 
 
@@ -122,6 +112,75 @@ LESSON19_EXERCISES = {
         "inputs": {"basis_beta": [[1, 1], [1, -1]], "basis_beta_prime": [[1, 0], [0, 1]]},
         "expected_result": [[1, 1], [1, -1]],
         "solution": ["Para levar coordenadas de β para β′, coloque os vetores de β como colunas na base β′.", "Como β′ é a base canônica, a matriz é [[1,1],[1,−1]].", "Essa matriz transforma [v]β em [v]β′."],
+    },
+    "lesson19_coordinates": {
+        "question": "Calcule as coordenadas dos dois vetores fornecidos em suas bases: um exemplo em R² e outro em R³.",
+        "inputs": {
+            "exemplo_R2": {"basis": [[1, 2], [2, 1]], "vector": [5, 4]},
+            "exemplo_R3": {"basis": [[1, 0, 1], [1, 1, 0], [0, 0, 1]], "vector": [3, 4, 5]},
+        },
+        "expected_result": {"coordenadas_R2": [1, 2], "coordenadas_R3": [-1, 4, 6]},
+        "solution": [
+            "Coordenadas são os coeficientes que multiplicam os vetores da base para reconstruir o vetor dado.",
+            "No R²: (5,4) = a(1,2) + b(2,1). O sistema é a+2b=5 e 2a+b=4; portanto a=1 e b=2.",
+            "Logo, no primeiro exemplo [v]β=(1,2)ᵀ. O vetor continua sendo (5,4); apenas sua descrição mudou para a base β.",
+            "No R³: (3,4,5) = a(1,0,1) + b(1,1,0) + c(0,0,1). Comparando componentes: a+b=3, b=4 e a+c=5.",
+            "Assim, a=−1, b=4 e c=6; portanto [v]β=(−1,4,6)ᵀ.",
+            "Na base canônica, as coordenadas coincidem diretamente com as componentes do vetor. Em uma base não canônica, é necessário resolver o sistema.",
+            "Resposta final: coordenadas_R2=(1,2) e coordenadas_R3=(−1,4,6).",
+        ],
+    },
+    "lesson19_polynomials": {
+        "question": "Encontre as coordenadas dos dois polinômios nas bases fornecidas: um exemplo em P₁ e outro em P₂.",
+        "inputs": {
+            "exemplo_P1": {"basis": ["1+t", "1−t"], "polynomial": "5+t"},
+            "exemplo_P2": {"basis": ["1", "1+t", "t²"], "polynomial": "3+2t+t²"},
+        },
+        "expected_result": {"coordenadas_P1": [3, 2], "coordenadas_P2": [1, 2, 1]},
+        "solution": [
+            "Em um espaço de polinômios, cada elemento da base é um polinômio e as coordenadas são os coeficientes da combinação linear.",
+            "Em P₁: 5+t = a(1+t)+b(1−t). Comparando termos, a+b=5 e a−b=1; logo a=3 e b=2.",
+            "Em P₂: 3+2t+t² = a·1+b(1+t)+c·t². O termo t² dá c=1; o termo t dá b=2; o termo constante dá a+b=3, então a=1.",
+            "A ordem das coordenadas segue a ordem da base. Por isso [5+t]β=(3,2) e [3+2t+t²]β=(1,2,1).",
+            "Resposta final: coordenadas_P1=(3,2) e coordenadas_P2=(1,2,1).",
+        ],
+    },
+    "lesson19_reconstruction": {
+        "question": "Reconstrua os vetores e o polinômio a partir de suas coordenadas nas respectivas bases.",
+        "inputs": {
+            "vetor_R2": {"basis": [[1, 1], [2, 1]], "coordinates_beta": [2, 3]},
+            "vetor_R3": {"basis": [[1, 0, 1], [0, 1, 1], [1, 1, 0]], "coordinates_beta": [1, 2, 3]},
+            "polinomio": {"basis": ["1+t", "t", "1−t+t²"], "coordinates_beta": [2, -1, 3]},
+        },
+        "expected_result": {"vetor_R2": [8, 5], "vetor_R3": [4, 5, 3], "polinomio": "5−2t+3t²"},
+        "solution": [
+            "Reconstruir é fazer o caminho inverso: multiplicar cada vetor ou polinômio da base pela coordenada correspondente e somar.",
+            "R²: v=2(1,1)+3(2,1)=(2+6,2+3)=(8,5).",
+            "R³: v=1(1,0,1)+2(0,1,1)+3(1,1,0)=(1+3,2+3,1+2)=(4,5,3).",
+            "Polinômio: p(t)=2(1+t)−t+3(1−t+t²)=5−2t+3t².",
+            "Esse cálculo mostra que as coordenadas são suficientes para recuperar exatamente o objeto original quando a base é conhecida.",
+            "Resposta final: vetor_R2=(8,5), vetor_R3=(4,5,3) e p(t)=5−2t+3t².",
+        ],
+    },
+    "lesson19_change_of_basis": {
+        "question": "Converta coordenadas entre β e β′ e encontre as matrizes de mudança nos dois sentidos.",
+        "inputs": {
+            "base_beta": [[1, 1], [1, -1]],
+            "base_beta_prime": [[1, 0], [0, 1]],
+            "coordenadas_beta": [2, 1],
+        },
+        "expected_result": {
+            "coordenadas_beta_prime": [3, 1],
+            "matriz_beta_para_beta_prime": [[1, 1], [1, -1]],
+            "matriz_beta_prime_para_beta": [[0.5, 0.5], [0.5, -0.5]],
+        },
+        "solution": [
+            "Para converter [v]β para [v]β′, primeiro reconstrua o vetor: v=2(1,1)+1(1,−1)=(3,1). Como β′ é canônica, [v]β′=(3,1).",
+            "A matriz que leva coordenadas de β para β′ coloca os vetores de β como colunas escritas em β′: Pβ→β′=[[1,1],[1,−1]].",
+            "Para o caminho inverso, calcule a inversa: det(P)=−2 e P⁻¹=[[(1/2),(1/2)],[(1/2),(−1/2)]].",
+            "Multiplicando as duas matrizes obtemos a identidade; por isso uma desfaz exatamente a mudança feita pela outra.",
+            "Resposta final: [v]β′=(3,1), Pβ→β′=[[1,1],[1,−1]] e Pβ′→β=[[0.5,0.5],[0.5,−0.5]].",
+        ],
     },
 }
 

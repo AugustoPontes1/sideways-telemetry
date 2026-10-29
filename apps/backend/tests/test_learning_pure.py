@@ -76,3 +76,18 @@ def test_r3_exercises_preserve_height_and_calculate_rank():
     assert basis["calculation"]["dimension"] == 3
     assert len(basis["calculation"]["basis"]) == 3
     assert any("R³" in line for line in basis["solution"])
+
+
+def test_lesson19_topics_are_grouped_by_content():
+    coordinates = generate_exercise("lesson19_coordinates", s1, s2)
+    assert coordinates["expected_result"] == {
+        "coordenadas_R2": [1, 2], "coordenadas_R3": [-1, 4, 6],
+    }
+    polynomials = generate_exercise("lesson19_polynomials", s1, s2)
+    assert polynomials["expected_result"] == {
+        "coordenadas_P1": [3, 2], "coordenadas_P2": [1, 2, 1],
+    }
+    reconstruction = generate_exercise("lesson19_reconstruction", s1, s2)
+    assert reconstruction["expected_result"]["vetor_R3"] == [4, 5, 3]
+    change = generate_exercise("lesson19_change_of_basis", s1, s2)
+    assert change["expected_result"]["coordenadas_beta_prime"] == [3, 1]
