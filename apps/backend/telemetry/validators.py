@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import re
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -13,6 +14,7 @@ MAX_BATCH_BYTES = 1_048_576
 MAX_SAMPLES = 100
 MAX_TRACK_MAP_POINTS = 1200
 MAX_CAR_VISUAL_TEXT = 160
+HEX_COLOR_RE = re.compile(r"^#[0-9a-fA-F]{6}$")
 MAX_TIMESTAMP_NS = 4_102_444_800_000_000_000  # 2100-01-01 UTC
 MIN_TIMESTAMP_NS = 946_684_800_000_000_000  # 2000-01-01 UTC
 
@@ -102,6 +104,9 @@ def checked_car_visual(data: Mapping) -> dict[str, Any] | None:
     skin_id = value.get("skin_id", "")
     if not isinstance(skin_id, str) or len(skin_id) > MAX_CAR_VISUAL_TEXT or any(ord(ch) < 32 for ch in skin_id):
         raise InvalidBatch("car_visual.skin_id: texto inválido")
+    color_hex = value.get("color_hex") or ""
+    if not isinstance(color_hex, str) or color_hex and not HEX_COLOR_RE.fullmatch(color_hex):
+        raise InvalidBatch("car_visual.color_hex: cor hexadecimal inválida")
     return {
         "id": checked_string(value, "id", MAX_CAR_VISUAL_TEXT),
         "display_name": checked_string(value, "display_name", MAX_CAR_VISUAL_TEXT),
@@ -111,6 +116,7 @@ def checked_car_visual(data: Mapping) -> dict[str, Any] | None:
         "ui_metadata": ui_metadata,
         "model_format": checked_string(value, "model_format", 16),
         "skin_id": skin_id,
+        "color_hex": color_hex,
     }
 
 

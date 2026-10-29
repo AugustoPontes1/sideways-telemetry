@@ -23,9 +23,21 @@ def test_normalized_previous_agent_is_accepted():
 
     original = make_sample()
     original["telemetry"].pop("speed_mps")  # AC Bridge does not transmit this yet.
+    original["telemetry"]["car_visual"] = {
+        "id": "mod_car",
+        "display_name": "Mod Car",
+        "brand": "",
+        "asset_key": "mod_car",
+        "source": "content/cars",
+        "ui_metadata": False,
+        "model_format": "kn5",
+        "skin_id": "blue",
+        "color_hex": "#12abef",
+    }
     normalized = module.TelemetryNormalizer().normalize(original)
     assert normalized["telemetry"]["speed_mps"] == pytest.approx(56.0 / 3.6)
 
     batch = validate_batch(make_batch([normalized]), "wsl-assetto-agent")
     assert batch.samples[0].frame["rpm"] == 4500
     assert batch.samples[0].sequence == 0
+    assert batch.samples[0].frame["car_visual"]["color_hex"] == "#12abef"

@@ -33,6 +33,21 @@ def locate_samples(session, query):
     return first, second
 
 
+def locate_three_samples(session, query):
+    first, second = locate_samples(session, query)
+    third_raw = query.get("c")
+    try:
+        third_seq = int(third_raw)
+    except (ValueError, TypeError) as exc:
+        raise ExerciseUnavailable("c precisa ser uma sequência inteira") from exc
+    if third_seq < 0 or third_seq in {first.sequence, second.sequence}:
+        raise ExerciseUnavailable("a, b e c precisam ser sequências distintas não negativas")
+    third = TelemetrySample.objects.filter(session=session, sequence=third_seq).first()
+    if not third:
+        raise ExerciseUnavailable("A amostra c não existe nesta sessão")
+    return first, second, third
+
+
 class ExerciseTopicsView(APIView):
     permission_classes = [IsAdminUser]
 
@@ -48,8 +63,14 @@ class SessionExerciseView(APIView):
         topic = request.query_params.get("topic", "displacement")
         reveal = request.query_params.get("reveal") in ("1", "true", "yes")
         try:
-            a, b = locate_samples(session, request.query_params)
-            exercise = generate_exercise(topic, a, b, reveal=reveal)
+            if topic.startswith("lesson19_"):
+                exercise = generate_exercise(topic, None, None, reveal=reveal)
+            elif topic == "basis_dimension_3d":
+                a, b, c = locate_three_samples(session, request.query_params)
+                exercise = generate_exercise(topic, a, b, c, reveal=reveal)
+            else:
+                a, b = locate_samples(session, request.query_params)
+                exercise = generate_exercise(topic, a, b, reveal=reveal)
         except ExerciseUnavailable as exc:
             return Response({"detail": str(exc)}, status=400)
         return Response(exercise)
@@ -63,8 +84,15 @@ class SessionCheckAnswerView(APIView):
         if not isinstance(request.data, dict) or "answer" not in request.data:
             return Response({"detail": "Informe answer"}, status=400)
         try:
-            a, b = locate_samples(session, request.data)
-            exercise = generate_exercise(request.data.get("topic", "displacement"), a, b)
+            topic = request.data.get("topic", "displacement")
+            if topic.startswith("lesson19_"):
+                exercise = generate_exercise(topic, None, None)
+            elif topic == "basis_dimension_3d":
+                a, b, c = locate_three_samples(session, request.data)
+                exercise = generate_exercise(topic, a, b, c)
+            else:
+                a, b = locate_samples(session, request.data)
+                exercise = generate_exercise(topic, a, b)
         except ExerciseUnavailable as exc:
             return Response({"detail": str(exc)}, status=400)
         return Response({

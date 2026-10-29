@@ -120,6 +120,8 @@ def persist_batch(batch: ValidatedBatch) -> PersistResult:
                         "clutch": f["clutch"],
                         "steer_angle_rad": f["steer_angle_rad"],
                         "heading_rad": f["heading_rad"],
+                        "pitch_rad": f["pitch_rad"],
+                        "roll_rad": f["roll_rad"],
                         "position_world_m": f["position_world_m"],
                         "velocity_world_mps": f["velocity_world_mps"],
                         "car_damage": f["car_damage"],

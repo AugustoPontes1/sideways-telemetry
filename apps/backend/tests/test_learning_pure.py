@@ -9,6 +9,9 @@ s1 = SimpleNamespace(
 s2 = SimpleNamespace(
     sequence=2, position_world_m=[14.0, 0.0, 8.0], velocity_world_mps=[5.0, 0.0, 6.0],
 )
+s3 = SimpleNamespace(
+    sequence=3, position_world_m=[14.0, 2.0, 10.0], velocity_world_mps=[0.0, 7.0, 0.0],
+)
 
 
 def test_displacement_and_hidden_solution():
@@ -56,3 +59,20 @@ def test_affine_subspace_as_counterexample():
     exercise = generate_exercise("affine_subspace", s1, s2, reveal=True)
     assert exercise["expected_result"] == {"is_subspace": False, "dimension": None}
     assert any("zero" in line for line in exercise["solution"])
+
+
+def test_r3_exercises_preserve_height_and_calculate_rank():
+    displacement = generate_exercise("displacement_3d", s1, s2)
+    assert displacement["expected_result"] == {
+        "delta_x_m": 4.0, "delta_y_m": 0.0, "delta_z_m": 3.0, "distance_3d_m": 5.0,
+    }
+
+    combination = generate_exercise("combination_3d", s1, s3)
+    assert combination["expected_result"] == {"a": 4.0, "b": 2.0, "c": 5.0}
+
+    basis = generate_exercise("basis_dimension_3d", s1, s2, s3, reveal=True)
+    assert basis["source_sequences"] == [1, 2, 3]
+    assert basis["calculation"]["sample_sequences"] == [1, 2, 3]
+    assert basis["calculation"]["dimension"] == 3
+    assert len(basis["calculation"]["basis"]) == 3
+    assert any("R³" in line for line in basis["solution"])
