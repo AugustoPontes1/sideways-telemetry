@@ -27,7 +27,7 @@ export function TrajectoryPage() {
     {displaySample && samples.length ? <>
       <Panel title="Visualizador do carro" subtitle="Miniatura adaptada ao carro detectado · mapa do traçado capturado · coordenadas X/Y/Z"
         action={<span className="view-label"><Camera size={16}/> Câmera livre</span>}>
-        <TrajectoryScene samples={samples} selected={displaySample} reference={showRef ? positions : []} trackMap={trackMap}
+        <TrajectoryScene key={activeSession?.stream_id || 'demo'} samples={samples} selected={displaySample} reference={showRef ? positions : []} trackMap={trackMap}
           carName={activeSession?.car} carVisual={activeSession?.car_visual} trackName={activeSession?.track}/>
         <div className="playback-toolbar">
           <button className="button button-primary" onClick={() => playback.setPlaying(!playback.playing)}>

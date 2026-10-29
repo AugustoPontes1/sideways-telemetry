@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { downsample } from '../lib/telemetry';
+import { acHeadingToMapDegrees, projectWorldToMap } from '../lib/trackMap';
 import type { TelemetrySample, TrackMap, Vec3 } from '../lib/types';
 
 interface TrackMiniMapProps {
@@ -53,13 +54,6 @@ function project(points: Array<[number, number]>, bounds: Bounds | null): MapPoi
   }));
 }
 
-function projectMapPoint([x, z]: [number, number], config: NonNullable<TrackMap['map_config']>): MapPoint {
-  return {
-    x: Math.max(0, Math.min(100, ((x + config.offset_x) / config.width) * 100)),
-    y: Math.max(0, Math.min(100, ((z + config.offset_z) / config.height) * 100)),
-  };
-}
-
 function pointString(points: MapPoint[]): string {
   return points.map(({ x, y }) => `${x.toFixed(2)},${y.toFixed(2)}`).join(' ');
 }
@@ -77,18 +71,24 @@ export function TrackMiniMap({ samples, selected, reference = [], trackMap, trac
     const referenceRoute = hasFullMap ? [] : downsample(reference, 900).map((point) => [point[0], point[2]] as [number, number]);
     const all = [...route, ...referenceRoute];
     const selectedRoutePoint = selected ? [selected.position_world_m[0], selected.position_world_m[2]] as [number, number] : null;
-    const bounds = boundsFor(all);
-    const projected = project(all, bounds);
-    const routeEnd = route.length;
-    const selectedPoint = selectedRoutePoint && bounds ? projectPoint(selectedRoutePoint, bounds) : null;
     const mapConfig = trackMap?.map_config;
-    const mapSelectedPoint = selectedRoutePoint && trackMap?.image_url && mapConfig
-      ? projectMapPoint(selectedRoutePoint, mapConfig)
+    const useMapProjection = Boolean(mapConfig && hasFullMap);
+    const bounds = boundsFor(all);
+    const projected = useMapProjection && mapConfig
+      ? route.map((point) => projectWorldToMap(point, mapConfig))
+      : project(all, bounds);
+    const routeEnd = route.length;
+    const projectedRoute = projected.slice(0, routeEnd);
+    const projectedReference = useMapProjection ? [] : projected.slice(routeEnd, routeEnd + referenceRoute.length);
+    const selectedPoint = selectedRoutePoint && bounds ? projectPoint(selectedRoutePoint, bounds) : null;
+    const mapSelectedPoint = selectedRoutePoint && useMapProjection && mapConfig
+      ? projectWorldToMap(selectedRoutePoint, mapConfig)
       : selectedPoint;
     return {
-      route: projected.slice(0, routeEnd),
-      reference: projected.slice(routeEnd, routeEnd + referenceRoute.length),
+      route: projectedRoute,
+      reference: projectedReference,
       selected: mapSelectedPoint,
+      heading: selected?.heading_rad ?? null,
       full: hasFullMap,
       source: trackMap?.source || '',
       imageUrl: trackMap?.image_url || '',
@@ -112,6 +112,11 @@ export function TrackMiniMap({ samples, selected, reference = [], trackMap, trac
         {map.route[0] && <circle className="track-map-start" cx={map.route[0].x} cy={map.route[0].y} r="2.1"/>}
         {map.selected && <g className="track-map-car" aria-label="Posição atual do carro">
           <title>Posição atual do carro</title>
+          {map.heading !== null && <path
+            className="track-map-heading"
+            d="M 0 5 L 3 -3 L 0 -1 L -3 -3 Z"
+            transform={`translate(${map.selected.x} ${map.selected.y}) rotate(${acHeadingToMapDegrees(map.heading)})`}
+          />}
           <circle className="track-map-current-pulse" cx={map.selected.x} cy={map.selected.y} r="5.5"/>
           <circle className="track-map-current" cx={map.selected.x} cy={map.selected.y} r="3.2"/>
         </g>}

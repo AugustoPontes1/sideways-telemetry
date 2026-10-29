@@ -94,17 +94,17 @@ export const compareSessions = (id: string, refId: string, publicMode = false) =
   );
 
 export const getExercise = (
-  id: string, topic: string, a: number, b: number, reveal = false, publicMode = false,
+  id: string, topic: string, a?: number, b?: number, reveal = false, publicMode = false, c?: number,
 ) => apiFetch<Exercise>(
   `${apiRoot(publicMode)}/sessions/${encodeURIComponent(id)}/exercise/?topic=${encodeURIComponent(topic)}` +
-  `&a=${a}&b=${b}${reveal ? '&reveal=1' : ''}`,
+  `${typeof a === 'number' && typeof b === 'number' ? `&a=${a}&b=${b}` : ''}${typeof c === 'number' ? `&c=${c}` : ''}${reveal ? '&reveal=1' : ''}`,
 );
 
 export const checkExercise = (
-  id: string, topic: string, a: number, b: number, answer: ExerciseValue, publicMode = false,
+  id: string, topic: string, a: number | undefined, b: number | undefined, answer: ExerciseValue, publicMode = false, c?: number,
 ) => apiFetch<AnswerCheck>(`${apiRoot(publicMode)}/sessions/${encodeURIComponent(id)}/exercise/check/`, {
   method: 'POST',
-  body: JSON.stringify({ topic, a, b, answer }),
+  body: JSON.stringify({ topic, ...(typeof a === 'number' && typeof b === 'number' ? { a, b } : {}), ...(typeof c === 'number' ? { c } : {}), answer }),
 });
 
 export function liveSocketUrl(id: string, publicMode = false): string {

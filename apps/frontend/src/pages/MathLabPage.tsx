@@ -27,7 +27,7 @@ export function MathLabPage() {
             <div><span>03</span><p>Resolva no papel, confira o resultado e revise as propriedades utilizadas.</p></div>
             <div><span>04</span><p>Revele a solução completa somente quando quiser comparar seu raciocínio.</p></div>
           </div>
-          <div className="learning-note"><Lightbulb size={20}/><p>Este MVP oferece oito tipos de exercícios no backend. Não representa automaticamente todas as aulas da disciplina.</p></div>
+          <div className="learning-note"><Lightbulb size={20}/><p>A Aula 19 está disponível no seletor Tema, junto com os exercícios que usam os dados da sessão.</p></div>
         </Panel>
       </div>
     </>}

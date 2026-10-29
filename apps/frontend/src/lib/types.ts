@@ -23,6 +23,7 @@ export interface CarVisual {
   ui_metadata: boolean;
   model_format: string;
   skin_id?: string;
+  color_hex?: string;
 }
 
 export interface DrivingSession {
@@ -143,6 +144,16 @@ export interface BasisDimensionCalculation {
   dimension: number;
   numeric_tolerance: number;
 }
+export interface BasisDimension3DCalculation {
+  sample_sequences: number[];
+  sample_speed_mps: number[];
+  vectors: number[][];
+  matrix: number[][];
+  determinant: number;
+  basis: number[][];
+  dimension: number;
+  numeric_tolerance: number;
+}
 export interface Exercise {
   topic: string;
   title: string;
@@ -151,7 +162,7 @@ export interface Exercise {
   question: string;
   inputs: Record<string, ExerciseValue>;
   expected_result: ExerciseValue;
-  calculation?: ExerciseCalculation | BasisDimensionCalculation;
+  calculation?: ExerciseCalculation | BasisDimensionCalculation | BasisDimension3DCalculation;
   note: string;
   solution?: string[];
 }
